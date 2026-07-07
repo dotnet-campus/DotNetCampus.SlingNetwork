@@ -16,6 +16,7 @@ internal static class Program
             })
             .AddHandler<DefaultHandler>()
             .AddHandler<ServeHandler>()
+            .AddHandler<ConnectHandler>()
             .RunAsync();
     }
 
