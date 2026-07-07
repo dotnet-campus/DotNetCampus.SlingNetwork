@@ -1,0 +1,2 @@
+﻿Command.DefaultHandler.Description = "SlingNetwork is a P2P network builder."
+Command.DefaultHandler.Foo = "sample option"

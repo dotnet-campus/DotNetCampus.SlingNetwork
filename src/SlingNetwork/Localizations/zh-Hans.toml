@@ -1,0 +1,2 @@
+﻿Command.DefaultHandler.Description = "SlingNetwork 是一个 P2P 打洞组网工具。名称 Sling 取自“吊索”：当设备无法直连目标时，尝试抛出一条连接吊索，将双方挂接到同一个网络连接中。"
+Command.DefaultHandler.Foo = "示例选项"
