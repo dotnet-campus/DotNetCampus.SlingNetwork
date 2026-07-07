@@ -15,6 +15,7 @@ internal static class Program
                 HelpTextLocalizer = LocalizeCommandLineHelp,
             })
             .AddHandler<DefaultHandler>()
+            .AddHandler<ServeHandler>()
             .RunAsync();
     }
 

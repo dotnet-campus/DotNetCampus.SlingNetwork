@@ -1,2 +1,6 @@
-﻿Command.DefaultHandler.Description = "SlingNetwork is a P2P network builder."
-Command.DefaultHandler.Foo = "sample option"
+﻿Command.DefaultHandler.Description = "Sling is a P2P punch networking tool. The name Sling is derived from 'sling': when a device cannot directly connect to a target, it attempts to throw a connection sling to hook both parties into the same network link."
+Command.DefaultHandler.Foo = "Sample option"
+Command.ServeHandler.Description = "Start the Sling signaling service, used to assist Sling clients in end-to-end encrypted exchange of punch information and complete P2P connection establishment."
+Command.ServeHandler.ListenUrls = "URLs that the signaling service listens on. Multiple can be specified, defaults include 0.0.0.0:80 and [::]:80."
+Command.ServeHandler.AdminListenUrls = "URLs that the admin service listens on. Multiple can be specified, defaults include 0.0.0.0:81 and [::]:81."
+Command.ServeHandler.PunchPortRange = "UDP punch listening port or port range. Default is 50000, can also be specified as 50000-51000; the signaling service returns the actually available UDP punch port to the client."

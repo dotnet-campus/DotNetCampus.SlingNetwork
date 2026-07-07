@@ -1,2 +1,6 @@
-﻿Command.DefaultHandler.Description = "SlingNetwork 是一个 P2P 打洞组网工具。名称 Sling 取自“吊索”：当设备无法直连目标时，尝试抛出一条连接吊索，将双方挂接到同一个网络连接中。"
+﻿Command.DefaultHandler.Description = "Sling 是一个 P2P 打洞组网工具。名称 Sling 取自“吊索”：当设备无法直接连接目标时，尝试抛出一条连接吊索，将双方挂接到同一条网络链路中。"
 Command.DefaultHandler.Foo = "示例选项"
+Command.ServeHandler.Description = "启动 Sling 信令服务，用于辅助 Sling 客户端端到端加密交换打洞信息，并完成 P2P 连接建立。"
+Command.ServeHandler.ListenUrls = "信令服务监听的 URL。可指定多个，默认包含 0.0.0.0:80 和 [::]:80。"
+Command.ServeHandler.AdminListenUrls = "管理服务监听的 URL。可指定多个，默认包含 0.0.0.0:81 和 [::]:81。"
+Command.ServeHandler.PunchPortRange = "UDP 打洞监听端口或端口范围。默认为 50000，也可指定为 50000-51000；信令服务会向客户端返回实际可用的 UDP 打洞端口。"
