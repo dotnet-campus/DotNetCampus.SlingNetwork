@@ -15,7 +15,7 @@ public class ConnectHandler : ICommandHandler<AppContext>
     [Option('p', "punch-port", ValueName = "number", Description = "Command.ConnectHandler.PunchPort")]
     public string? PunchPort { get; set; }
 
-    public Task<int> RunAsync(AppContext state)
+    public Task<int> RunAsync(AppContext app)
     {
         var serverEndPoint = IPEndPoint.Parse(ConnectUrls[0]);
         var punchPort = PunchPort is { } punchPortArgument

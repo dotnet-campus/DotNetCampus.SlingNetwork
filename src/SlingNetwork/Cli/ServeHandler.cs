@@ -9,9 +9,6 @@ namespace DotNetCampus.SlingNetwork.Cli;
 [Command("serve", Description = "Command.ServeHandler.Description")]
 public class ServeHandler : ICommandHandler<AppContext>
 {
-    private readonly ApiHttpService _apiHttpService = new ApiHttpService(); 
-    private readonly PunchService _punchService = new PunchService(); 
-    
     [Option('a', "api-url", ValueName = "url", Description = "Command.ServeHandler.ListenUrls")]
     public IReadOnlyList<string>? ListenUrls { get; set; }
 
@@ -21,25 +18,24 @@ public class ServeHandler : ICommandHandler<AppContext>
     [Option('p', "punch-port-range", ValueName = "number", Description = "Command.ServeHandler.PunchPortRange")]
     public string? PunchPortRange { get; set; }
 
-    public async Task<int> RunAsync(AppContext state)
+    public async Task<int> RunAsync(AppContext app)
     {
-        var signalingServiceTask = RunSignalingServiceAsync();
-        var punchServiceTask = RunPunchServiceAsync();
-        await Task.WhenAll(signalingServiceTask, punchServiceTask);
-        return 0;
-    }
+        // 初始化服务。
+        var apiHttpService = new ApiHttpService(app);
+        var punchService = new PunchService(app);
 
-    private Task RunSignalingServiceAsync()
-    {
-        return _apiHttpService.Listen(ListenUrls);
-    }
+        // API 服务（http）。
+        var signalingServiceTask = apiHttpService.Listen(ListenUrls);
 
-    private Task RunPunchServiceAsync()
-    {
+        // 打洞服务（udp）。
         var punchPort = PunchPortRange is { } punchPortRange
                         && int.TryParse(punchPortRange, NumberStyles.Integer, CultureInfo.InvariantCulture, out var parsedPunchPort)
             ? parsedPunchPort
             : 50000;
-        return _punchService.Listen(punchPort);
+        var punchServiceTask = punchService.Listen(punchPort);
+
+        // 等待服务结束。
+        await Task.WhenAll(signalingServiceTask, punchServiceTask);
+        return 0;
     }
 }

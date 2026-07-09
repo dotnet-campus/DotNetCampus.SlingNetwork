@@ -1,11 +1,12 @@
-﻿using TouchSocket.Core;
+﻿using DotNetCampus.Logging;
+using TouchSocket.Core;
 using TouchSocket.Http;
 using TouchSocket.Rpc;
 using TouchSocket.Sockets;
 
 namespace DotNetCampus.SlingNetwork.Services.ApiHttpServices;
 
-public class ApiHttpService
+public class ApiHttpService(AppContext app)
 {
     public async Task Listen(IReadOnlyList<string>? urls)
     {
@@ -22,6 +23,7 @@ public class ApiHttpService
             .ConfigureContainer(a =>
             {
                 // a.AddConsoleLogger();
+                a.RegisterSingleton<ILogger>(_ => app.Logger);
                 a.AddRpcStore(store =>
                 {
                     store.RegisterServer<ApiHttpServer>();
@@ -44,6 +46,6 @@ public class ApiHttpService
             }));
         await service.StartAsync();
 
-        Console.WriteLine($"测试用地址: http://127.0.0.1:{ipHosts[0].Port}/api/v1/punch?publicKey=xxx");
+        app.Logger.Debug($"调试用地址: http://127.0.0.1:{ipHosts[0].Port}/api/v1/punch?publicKey=xxx");
     }
 }

@@ -1,10 +1,11 @@
 ﻿using System.Net;
 using System.Net.Sockets;
 using System.Text;
+using DotNetCampus.Logging;
 
 namespace DotNetCampus.SlingNetwork.Services.PunchServices;
 
-public class PunchService
+public class PunchService(AppContext app)
 {
     public async Task Listen(int punchPort)
     {
@@ -26,6 +27,6 @@ public class PunchService
     private void HandleUdpPacket(Span<byte> udpPacket, IPEndPoint remote)
     {
         var message = Encoding.UTF8.GetString(udpPacket);
-        Console.WriteLine($"Received UDP Packet from [{remote.Address}:{remote.Port}]: {message}");
+        app.Logger.Info($"[Punch] Received from [{remote.Address}:{remote.Port}]: {message}");
     }
 }
