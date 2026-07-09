@@ -7,7 +7,7 @@ using DotNetCampus.SlingNetwork.Services.PunchServices;
 namespace DotNetCampus.SlingNetwork.Cli;
 
 [Command("serve", Description = "Command.ServeHandler.Description")]
-public class ServeHandler : ICommandHandler
+public class ServeHandler : ICommandHandler<AppContext>
 {
     private readonly ApiHttpService _apiHttpService = new ApiHttpService(); 
     private readonly PunchService _punchService = new PunchService(); 
@@ -21,7 +21,7 @@ public class ServeHandler : ICommandHandler
     [Option('p', "punch-port-range", ValueName = "number", Description = "Command.ServeHandler.PunchPortRange")]
     public string? PunchPortRange { get; set; }
 
-    public async Task<int> RunAsync()
+    public async Task<int> RunAsync(AppContext state)
     {
         var signalingServiceTask = RunSignalingServiceAsync();
         var punchServiceTask = RunPunchServiceAsync();
