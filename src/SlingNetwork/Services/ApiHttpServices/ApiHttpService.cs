@@ -3,7 +3,7 @@ using TouchSocket.Http;
 using TouchSocket.Rpc;
 using TouchSocket.Sockets;
 
-namespace SlingNetwork.ApiHttpServices;
+namespace SlingNetwork.Services.ApiHttpServices;
 
 public class ApiHttpService
 {
@@ -30,7 +30,16 @@ public class ApiHttpService
             .ConfigurePlugins(a =>
             {
                 a.UseTcpSessionCheckClear();
-                a.UseWebApi();
+                a.UseWebApi(webApiOptions =>
+                {
+                    webApiOptions.ConfigureConverter(converter =>
+                    {
+                        converter.AddSystemTextJsonSerializerFormatter(serializerOptions =>
+                        {
+                            serializerOptions.TypeInfoResolverChain.Insert(0, AppJsonSerializerContext.Default);
+                        });
+                    });
+                });
                 a.UseDefaultHttpServicePlugin();
             }));
         await service.StartAsync();

@@ -1,14 +1,17 @@
 ﻿using System.Globalization;
 using DotNetCampus.Cli;
 using DotNetCampus.Cli.Compiler;
-using SlingNetwork.ApiHttpServices;
-using SlingNetwork.PunchServices;
+using SlingNetwork.Services.ApiHttpServices;
+using SlingNetwork.Services.PunchServices;
 
 namespace SlingNetwork.Cli;
 
 [Command("serve", Description = "Command.ServeHandler.Description")]
 public class ServeHandler : ICommandHandler
 {
+    private readonly ApiHttpService _apiHttpService = new ApiHttpService(); 
+    private readonly PunchService _punchService = new PunchService(); 
+    
     [Option('a', "api-url", ValueName = "url", Description = "Command.ServeHandler.ListenUrls")]
     public IReadOnlyList<string>? ListenUrls { get; set; }
 
@@ -28,7 +31,7 @@ public class ServeHandler : ICommandHandler
 
     private Task RunSignalingServiceAsync()
     {
-        return new ApiHttpService().Listen(ListenUrls);
+        return _apiHttpService.Listen(ListenUrls);
     }
 
     private Task RunPunchServiceAsync()
@@ -37,6 +40,6 @@ public class ServeHandler : ICommandHandler
                         && int.TryParse(punchPortRange, NumberStyles.Integer, CultureInfo.InvariantCulture, out var parsedPunchPort)
             ? parsedPunchPort
             : 50000;
-        return new PunchService().Listen(punchPort);
+        return _punchService.Listen(punchPort);
     }
 }

@@ -2,7 +2,7 @@
 using System.Net.Sockets;
 using System.Text;
 
-namespace SlingNetwork.PunchServices;
+namespace SlingNetwork.Services.PunchServices;
 
 public class PunchService
 {

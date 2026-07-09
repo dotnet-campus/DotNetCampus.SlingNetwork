@@ -1,7 +1,7 @@
 ﻿using TouchSocket.Rpc;
 using TouchSocket.WebApi;
 
-namespace SlingNetwork.ApiHttpServices;
+namespace SlingNetwork.Services.ApiHttpServices;
 
 [Router("/api/v1/punch")]
 public partial class ApiHttpServer : SingletonRpcServer
