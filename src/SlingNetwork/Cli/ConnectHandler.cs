@@ -4,7 +4,7 @@ using System.Net.Sockets;
 using DotNetCampus.Cli;
 using DotNetCampus.Cli.Compiler;
 
-namespace SlingNetwork.Cli;
+namespace DotNetCampus.SlingNetwork.Cli;
 
 [Command("connect", Description = "Command.ConnectHandler.Description")]
 public class ConnectHandler : ICommandHandler

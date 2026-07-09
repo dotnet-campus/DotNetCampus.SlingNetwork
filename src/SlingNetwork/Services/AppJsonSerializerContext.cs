@@ -1,9 +1,9 @@
 ﻿using System.Text.Encodings.Web;
 using System.Text.Json;
 using System.Text.Json.Serialization;
-using SlingNetwork.Services.ApiHttpServices;
+using DotNetCampus.SlingNetwork.Services.ApiHttpServices;
 
-namespace SlingNetwork.Services;
+namespace DotNetCampus.SlingNetwork.Services;
 
 [JsonSerializable(typeof(PunchInfo))]
 [JsonSourceGenerationOptions(

@@ -7,7 +7,6 @@
 
   <ItemGroup>
     <ProjectReference Include="..\..\src\SlingNetwork\SlingNetwork.csproj" />
-    <ProjectReference Include="..\..\src\SlingNetwork.Server\SlingNetwork.Server.csproj" />
     <ProjectReference Include="..\..\src\SlingNetwork.UI\SlingNetwork.UI.csproj" />
   </ItemGroup>
 

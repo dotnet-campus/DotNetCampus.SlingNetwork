@@ -16,7 +16,6 @@
   <Folder Name="/tests/">
     <Project Path="tests/SlingNetwork.Tests/SlingNetwork.Tests.csproj" />
   </Folder>
-  <Project Path="src/SlingNetwork.Server/SlingNetwork.Server.csproj" />
   <Project Path="src/SlingNetwork.UI/SlingNetwork.UI.csproj" />
   <Project Path="src/SlingNetwork/SlingNetwork.csproj" />
 </Solution>

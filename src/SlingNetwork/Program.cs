@@ -1,8 +1,8 @@
 using DotNetCampus.Cli;
-using SlingNetwork.Cli;
-using SlingNetwork.Localizations;
+using DotNetCampus.SlingNetwork.Cli;
+using DotNetCampus.SlingNetwork.Localizations;
 
-namespace SlingNetwork;
+namespace DotNetCampus.SlingNetwork;
 
 internal static class Program
 {

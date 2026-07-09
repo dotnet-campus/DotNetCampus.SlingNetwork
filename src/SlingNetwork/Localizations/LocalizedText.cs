@@ -1,6 +1,6 @@
 ﻿using DotNetCampus.Localizations;
 
-namespace SlingNetwork.Localizations;
+namespace DotNetCampus.SlingNetwork.Localizations;
 
 [LocalizedConfiguration(Default = "en",
     GenerationMode = GenerationMode.Dictionary,

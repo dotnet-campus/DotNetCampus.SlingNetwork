@@ -1,7 +1,7 @@
 ﻿using DotNetCampus.Cli;
 using DotNetCampus.Cli.Compiler;
 
-namespace SlingNetwork.Cli;
+namespace DotNetCampus.SlingNetwork.Cli;
 
 [Command(Description = "Command.DefaultHandler.Description")]
 internal class DefaultHandler : ICommandHandler

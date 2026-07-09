@@ -1,10 +1,10 @@
 ﻿using System.Globalization;
 using DotNetCampus.Cli;
 using DotNetCampus.Cli.Compiler;
-using SlingNetwork.Services.ApiHttpServices;
-using SlingNetwork.Services.PunchServices;
+using DotNetCampus.SlingNetwork.Services.ApiHttpServices;
+using DotNetCampus.SlingNetwork.Services.PunchServices;
 
-namespace SlingNetwork.Cli;
+namespace DotNetCampus.SlingNetwork.Cli;
 
 [Command("serve", Description = "Command.ServeHandler.Description")]
 public class ServeHandler : ICommandHandler

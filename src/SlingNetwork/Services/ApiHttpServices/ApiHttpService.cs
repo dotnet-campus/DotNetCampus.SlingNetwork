@@ -3,7 +3,7 @@ using TouchSocket.Http;
 using TouchSocket.Rpc;
 using TouchSocket.Sockets;
 
-namespace SlingNetwork.Services.ApiHttpServices;
+namespace DotNetCampus.SlingNetwork.Services.ApiHttpServices;
 
 public class ApiHttpService
 {
