@@ -28,28 +28,33 @@ public class ConnectHandler : ICommandHandler<AppContext>
             app.Logger.Error("[Punch] At least one ip-address is required. eg. 127.0.0.1");
             return -1;
         }
-
-        var serverAddresses = ConnectUrls.Select(IPAddress.Parse).ToList();
         var punchPort = PunchPort is { } punchPortArgument
                         && int.TryParse(punchPortArgument, NumberStyles.Integer, CultureInfo.InvariantCulture, out var parsedPunchPort)
             ? parsedPunchPort
             : 50000;
 
-        var client = new UdpClient(0);
-        var receiveTask = Task.Run(() => Receive(app.Logger, client, serverAddresses));
-        var sendTask = Task.Run(() => SendPackets(app.Logger, client, serverAddresses, punchPort));
+        var serverEndpoints = ConnectUrls
+            .Select(IPAddress.Parse)
+            .Select(ip => new IPEndPoint(ip, punchPort))
+            .ToList();
+
+        using var cts = new CancellationTokenSource();
+        using var udp = new UdpClient(0);
+
+        var receiveTask = ReceiveLoop(app.Logger, udp, cts.Token);
+        var sendTask = SendLoop(app.Logger, udp, serverEndpoints, cts.Token);
 
         await Task.WhenAll(receiveTask, sendTask);
         return 0;
     }
 
-    private void SendPackets(ILogger logger, UdpClient client, IReadOnlyList<IPAddress> serverAddresses, int punchPort)
+    private async Task SendLoop(ILogger logger, UdpClient udp, IReadOnlyList<IPEndPoint> servers, CancellationToken ct)
     {
         var peerIdentity = PeerIdentity.LoadOrCreate();
 
-        while (true)
+        while (!ct.IsCancellationRequested)
         {
-            foreach (var serverAddress in serverAddresses)
+            foreach (var server in servers)
             {
                 var punchInfo = new PeerPunchInfo
                 {
@@ -57,30 +62,43 @@ public class ConnectHandler : ICommandHandler<AppContext>
                     Group = "69de76b3-9f89-4731-89f5-9859fff379fc",
                     PublicKey = peerIdentity.PublicKey,
                 };
-                var message = $"[Punch] {punchInfo}";
+
+                var message = punchInfo.ToString();
                 var packet = UdpPacketCrypto.Encrypt(message);
 
-                var ipEndPoint = new IPEndPoint(serverAddress, punchPort);
-                logger.Info($"[Punch] Sending to [{ipEndPoint}]({packet.Length}): {message}");
-                client.Send(packet, ipEndPoint);
+                await udp.SendAsync(packet, server, ct);
+
+                logger.Info($"[Punch] Sent to [{server}]({packet.Length})");
             }
 
-            Thread.Sleep(5000);
+            await Task.Delay(TimeSpan.FromSeconds(5), ct);
         }
     }
 
-    private void Receive(ILogger logger, UdpClient client, List<IPAddress> serverAddresses)
+    private async Task ReceiveLoop(ILogger logger, UdpClient udp, CancellationToken ct)
     {
-        while (true)
+        while (!ct.IsCancellationRequested)
         {
-            IPEndPoint? ipEndPoint = null;
-            var packet = client.Receive(ref ipEndPoint);
+            UdpReceiveResult result;
+
+            try
+            {
+                result = await udp.ReceiveAsync(ct);
+            }
+            catch (SocketException ex) when (ex.SocketErrorCode == SocketError.ConnectionReset)
+            {
+                continue;
+            }
+
+            var packet = result.Buffer;
+            var remote = result.RemoteEndPoint;
+
             if (!UdpPacketCrypto.TryDecrypt(packet, out var message))
             {
                 continue;
             }
 
-            logger.Info($"[Punch] Received from [{ipEndPoint}]({packet.Length}): {message}");
+            logger.Info($"[Punch] Received from [{remote}]({packet.Length}): {message}");
         }
     }
 }

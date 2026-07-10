@@ -88,13 +88,13 @@ internal record PeerPunchInfo
         var dictionary = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
         foreach (var part in parts)
         {
-            var pair = part.Split('=');
-            if (pair.Length is not 2)
+            var equalsIndex = part.IndexOf('=');
+            if (equalsIndex < 1)
             {
                 continue;
             }
-            var key = pair[0];
-            var value = pair[1];
+            var key = part.Substring(0, equalsIndex);
+            var value = part.Substring(equalsIndex + 1);
             dictionary[key] = value;
         }
         var peer = dictionary.GetValueOrDefault(nameof(Peer));

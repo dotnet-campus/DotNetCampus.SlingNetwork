@@ -12,21 +12,28 @@ namespace DotNetCampus.SlingNetwork;
 
 internal static class Program
 {
-    private static void Main(string[] args)
+    private static async Task Main(string[] args)
     {
         var appContext = AppContext.Initialize();
 
-        CommandLine.Parse(args)
-            .AddHelpHandler(new HelpConfigurations
-            {
-                // TODO: 命令行库，帮助内置的文本，需要能允许指定多语言
-                HelpTextLocalizer = LocalizeCommandLineHelp,
-            })
-            .ForState(appContext)
-            .AddHandler<DefaultHandler>()
-            .AddHandler<ServeHandler>()
-            .AddHandler<ConnectHandler>()
-            .RunAsync();
+        try
+        {
+            await CommandLine.Parse(args)
+                .AddHelpHandler(new HelpConfigurations
+                {
+                    // TODO: 命令行库，帮助内置的文本，需要能允许指定多语言
+                    HelpTextLocalizer = LocalizeCommandLineHelp,
+                })
+                .ForState(appContext)
+                .AddHandler<DefaultHandler>()
+                .AddHandler<ServeHandler>()
+                .AddHandler<ConnectHandler>()
+                .RunAsync();
+        }
+        catch (Exception ex)
+        {
+            appContext.Logger.Error(ex.ToString());
+        }
     }
 
     private static string LocalizeCommandLineHelp(string key)
