@@ -2,6 +2,7 @@ using System.Text.Encodings.Web;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using DotNetCampus.Cli;
+using DotNetCampus.Cli.Exceptions;
 using DotNetCampus.Logging;
 using DotNetCampus.Logging.Writers;
 using DotNetCampus.SlingNetwork.Cli;
@@ -30,6 +31,10 @@ internal static class Program
                 .AddHandler<ConnectHandler>()
                 .RunAsync();
         }
+        catch (CommandLineException ex)
+        {
+            appContext.Logger.Error(ex.Message);
+        }
         catch (Exception ex)
         {
             appContext.Logger.Error(ex.ToString());
@@ -48,6 +53,8 @@ public record AppContext
 
     public required AppJsonSerializerContext JsonSerializer { get; init; }
 
+    public required HttpClient HttpClient { get; init; }
+
     public static AppContext Initialize()
     {
         var logger = new LoggerBuilder()
@@ -60,6 +67,10 @@ public record AppContext
         {
             Logger = logger,
             JsonSerializer = AppJsonSerializerContext.Default,
+            HttpClient = new HttpClient
+            {
+                Timeout = TimeSpan.FromSeconds(5),
+            },
         };
     }
 }

@@ -1,5 +1,5 @@
-﻿using System.Globalization;
-using System.Net;
+﻿using System.Net;
+using System.Net.Http.Json;
 using System.Net.Sockets;
 using DotNetCampus.Cli;
 using DotNetCampus.Cli.Compiler;
@@ -12,64 +12,72 @@ namespace DotNetCampus.SlingNetwork.Cli;
 [Command("connect", Description = "Command.ConnectHandler.Description")]
 public class ConnectHandler : ICommandHandler<AppContext>
 {
-    [Option('a', "api-url", ValueName = "url", Description = "Command.ConnectHandler.ConnectUrls")]
-    public IReadOnlyList<string> ConnectUrls { get; init; } = null!;
-
-    [Option('p', "punch-port", ValueName = "number", Description = "Command.ConnectHandler.PunchPort")]
-    public string? PunchPort { get; init; }
+    [Option('c', "control-url", ValueName = "url", Description = "Command.ConnectHandler.ControlUrl")]
+    public required string ControlUrl { get; init; }
 
     [Option('n', "peer-name", Description = "Command.ConnectHandler.PeerName")]
     public required string PeerName { get; init; }
 
     public async Task<int> RunAsync(AppContext app)
     {
-        if (ConnectUrls.Count is 0)
+        var punchInfo = await app.HttpClient.GetFromJsonAsync($"{ControlUrl}/api/v1/punch", app.JsonSerializer.PunchInfo);
+        if (punchInfo == null)
         {
-            app.Logger.Error("[Punch] At least one ip-address is required. eg. 127.0.0.1");
-            return -1;
+            app.Logger.Error($"[Punch] Control server is not available.");
+            return 1;
         }
-        var punchPort = PunchPort is { } punchPortArgument
-                        && int.TryParse(punchPortArgument, NumberStyles.Integer, CultureInfo.InvariantCulture, out var parsedPunchPort)
-            ? parsedPunchPort
-            : 50000;
+        var ipAddresses = await LookupIpAddressesAsync([..punchInfo.Hosts, new Uri(ControlUrl).Host]);
+        var ipv4 = ipAddresses.First(x => x.AddressFamily == AddressFamily.InterNetwork);
 
-        var serverEndpoints = ConnectUrls
-            .Select(IPAddress.Parse)
-            .Select(ip => new IPEndPoint(ip, punchPort))
-            .ToList();
+        var punchServer = new IPEndPoint(ipv4, punchInfo.UdpPort);
 
         using var cts = new CancellationTokenSource();
         using var udp = new UdpClient(0);
 
         var receiveTask = ReceiveLoop(app.Logger, udp, cts.Token);
-        var sendTask = SendLoop(app.Logger, udp, serverEndpoints, cts.Token);
+        var sendTask = SendLoop(app.Logger, udp, punchServer, cts.Token);
 
         await Task.WhenAll(receiveTask, sendTask);
         return 0;
     }
 
-    private async Task SendLoop(ILogger logger, UdpClient udp, IReadOnlyList<IPEndPoint> servers, CancellationToken ct)
+    private async Task<IReadOnlyList<IPAddress>> LookupIpAddressesAsync(IReadOnlyList<string> hosts)
+    {
+        var result = new List<IPAddress>();
+        var ipAddresses = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        foreach (var host in hosts)
+        {
+            var addresses = await Dns.GetHostAddressesAsync(host);
+            foreach (var address in addresses)
+            {
+                if (ipAddresses.Add(address.ToString()))
+                {
+                    result.Add(address);
+                }
+            }
+        }
+        return result;
+    }
+
+    private async Task SendLoop(ILogger logger, UdpClient udp, IPEndPoint punchServer, CancellationToken ct)
     {
         var peerIdentity = PeerIdentity.LoadOrCreate();
 
         while (!ct.IsCancellationRequested)
         {
-            foreach (var server in servers)
+            var punchInfo = new PeerPunchInfo
             {
-                var punchInfo = new PeerPunchInfo
-                {
-                    Peer = PeerName,
-                    Group = "69de76b3-9f89-4731-89f5-9859fff379fc",
-                    PublicKey = peerIdentity.PublicKey,
-                };
+                Peer = PeerName,
+                Group = "69de76b3-9f89-4731-89f5-9859fff379fc",
+                PublicKey = peerIdentity.PublicKey,
+            };
 
-                var message = punchInfo.ToString();
-                var packet = UdpPacketCrypto.Encrypt(message);
+            var message = punchInfo.ToString();
+            var packet = UdpPacketCrypto.Encrypt(message);
 
-                await udp.SendAsync(packet, server, ct);
+            await udp.SendAsync(packet, punchServer, ct);
 
-                logger.Info($"[Punch] Sent to [{server}]({packet.Length})");
-            }
+            logger.Info($"[Punch] Sent to [{punchServer}]({packet.Length})");
 
             await Task.Delay(TimeSpan.FromSeconds(5), ct);
         }

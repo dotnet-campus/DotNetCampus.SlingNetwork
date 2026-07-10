@@ -1,4 +1,6 @@
-﻿using DotNetCampus.Logging;
+﻿using System.Net;
+using DotNetCampus.Logging;
+using DotNetCampus.SlingNetwork.Cli;
 using TouchSocket.Core;
 using TouchSocket.Http;
 using TouchSocket.Rpc;
@@ -6,15 +8,15 @@ using TouchSocket.Sockets;
 
 namespace DotNetCampus.SlingNetwork.Services.ApiHttpServices;
 
-public class ApiHttpService(AppContext app)
+public class ControlHttpService(ServerContext context, ServeHandler serverInfo)
 {
-    public async Task Listen(IReadOnlyList<string>? urls)
+    public async Task Listen()
     {
-        IPHost[] ipHosts = urls switch
+        IPHost[] ipHosts = serverInfo.ControlListenEndPoints switch
         {
-            null or [] => [new IPHost(80)],
+            null or [] => [new IPHost(IPAddress.Any, 80), new IPHost(IPAddress.IPv6Any, 80)],
             string[] array => IPHost.ParseIPHosts(array),
-            _ => urls.Select(x => IPHost.ParseIPHosts([x])[0]).ToArray(),
+            _ => serverInfo.ControlListenEndPoints.Select(x => IPHost.ParseIPHosts([x])[0]).ToArray(),
         };
 
         var service = new HttpService();
@@ -23,10 +25,12 @@ public class ApiHttpService(AppContext app)
             .ConfigureContainer(a =>
             {
                 // a.AddConsoleLogger();
-                a.RegisterSingleton<ILogger>(_ => app.Logger);
+                a.RegisterSingleton<ServerContext>(_ => context);
+                a.RegisterSingleton<ILogger>(_ => context.App.Logger);
+                a.RegisterSingleton<ServeHandler>(_ => serverInfo);
                 a.AddRpcStore(store =>
                 {
-                    store.RegisterServer<ApiHttpServer>();
+                    store.RegisterServer<PunchHttpServer>();
                 });
             })
             .ConfigurePlugins(a =>
@@ -46,6 +50,6 @@ public class ApiHttpService(AppContext app)
             }));
         await service.StartAsync();
 
-        app.Logger.Debug($"调试用地址: http://127.0.0.1:{ipHosts[0].Port}/api/v1/punch?publicKey=xxx");
+        context.App.Logger.Debug($"调试用地址: http://127.0.0.1:{ipHosts[0].Port}/api/v1/punch?publicKey=xxx");
     }
 }

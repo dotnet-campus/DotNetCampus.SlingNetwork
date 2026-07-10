@@ -1,6 +1,9 @@
-﻿using System.Globalization;
-using DotNetCampus.Cli;
+﻿using DotNetCampus.Cli;
 using DotNetCampus.Cli.Compiler;
+using DotNetCampus.Cli.Exceptions;
+using DotNetCampus.SlingNetwork.Localizations;
+using DotNetCampus.SlingNetwork.Models;
+using DotNetCampus.SlingNetwork.Services;
 using DotNetCampus.SlingNetwork.Services.ApiHttpServices;
 using DotNetCampus.SlingNetwork.Services.PunchServices;
 
@@ -9,30 +12,54 @@ namespace DotNetCampus.SlingNetwork.Cli;
 [Command("serve", Description = "Command.ServeHandler.Description")]
 public class ServeHandler : ICommandHandler<AppContext>
 {
-    [Option('a', "api-url", ValueName = "url", Description = "Command.ServeHandler.ListenUrls")]
-    public IReadOnlyList<string>? ListenUrls { get; set; }
+    [Option('l', "listen", ValueName = "ip:port", Description = "Command.ServeHandler.ControlListenEndPoints")]
+    public IReadOnlyList<string>? ControlListenEndPoints { get; init; }
 
-    [Option("admin-url", ValueName = "url", Description = "Command.ServeHandler.AdminListenUrls")]
-    public IReadOnlyList<string> AdminListenUrls { get; set; } = null!;
+    [Option('a', "admin-listen", ValueName = "ip:port", Description = "Command.ServeHandler.AdminListenEndPoints")]
+    public IReadOnlyList<string>? AdminListenEndPoints { get; init; }
 
-    [Option('p', "punch-port-range", ValueName = "number", Description = "Command.ServeHandler.PunchPortRange")]
-    public string? PunchPortRange { get; set; }
+    [Option('b', "partner-control-url", ValueName = "url", Description = "Command.ServeHandler.PartnerControlUrls")]
+    public IReadOnlyList<string>? PartnerControlUrls { get; init; }
+
+    [Option("public-udp-host", Description = "Command.ServeHandler.UdpHosts")]
+    public IReadOnlyList<string>? PublicUdpHosts { get; init; }
+
+    [Option('p', "udp-port-range", ValueName = "port|port1-port2", Description = "Command.ServeHandler.UdpPortRange")]
+    public string? RawUdpPortRange
+    {
+        get => UdpPortRange.ToString();
+        init => UdpPortRange = value is not null
+            ? PortRange.TryParse(value, out var parsedPortRange)
+                ? parsedPortRange
+                : throw new CommandLineParseValueException(LocalizedText.Current.Command.ParseValueException.PortRange.ToString(value))
+            : new PortRange(50000);
+    }
+
+    public PortRange UdpPortRange { get; private init; } = new PortRange(50000);
 
     public async Task<int> RunAsync(AppContext app)
     {
+        var udpPort = UdpPortRange.Random();
+        var serverContext = new ServerContext
+        {
+            App = app,
+            UdpInfo = new ServerUdpInfo
+            {
+                PortRange = UdpPortRange,
+                Hosts = PublicUdpHosts ?? [],
+                Port = udpPort,
+            },
+        };
+
         // 初始化服务。
-        var apiHttpService = new ApiHttpService(app);
-        var punchService = new PunchService(app);
+        var apiHttpService = new ControlHttpService(serverContext, this);
+        var punchService = new PunchService(serverContext);
 
         // API 服务（http）。
-        var signalingServiceTask = apiHttpService.Listen(ListenUrls);
+        var signalingServiceTask = apiHttpService.Listen();
 
         // 打洞服务（udp）。
-        var punchPort = PunchPortRange is { } punchPortRange
-                        && int.TryParse(punchPortRange, NumberStyles.Integer, CultureInfo.InvariantCulture, out var parsedPunchPort)
-            ? parsedPunchPort
-            : 50000;
-        var punchServiceTask = punchService.Listen(punchPort);
+        var punchServiceTask = punchService.Listen();
 
         // 等待服务结束。
         await Task.WhenAll(signalingServiceTask, punchServiceTask);

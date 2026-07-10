@@ -8,17 +8,17 @@ using DotNetCampus.SlingNetwork.Services.Security;
 
 namespace DotNetCampus.SlingNetwork.Services.PunchServices;
 
-public class PunchService(AppContext app)
+public class PunchService(ServerContext context)
 {
     private readonly ConcurrentDictionary<string, Dictionary<string, PeerPunchInfo>> _punchingPeers = [];
 
-    public async Task Listen(int punchPort)
+    public async Task Listen()
     {
         var socket = new Socket(AddressFamily.InterNetworkV6, SocketType.Dgram, ProtocolType.Udp)
         {
             DualMode = true,
         };
-        socket.Bind(new IPEndPoint(IPAddress.Any, punchPort));
+        socket.Bind(new IPEndPoint(IPAddress.Any, context.UdpInfo.Port));
 
         Span<byte> buffer = new byte[1024 * 2];
         while (true)
@@ -33,21 +33,21 @@ public class PunchService(AppContext app)
     {
         if (!UdpPacketCrypto.TryDecrypt(udpPacket, out var receivedMessage))
         {
-            app.Logger.Warn($"[Punch] Received from [{remote.Address}:{remote.Port}]: <Unknown>");
+            context.Logger.Warn($"[Punch] Received from [{remote.Address}:{remote.Port}]: <Unknown>");
             return;
         }
 
-        app.Logger.Info($"[Punch] Received from [{remote.Address}:{remote.Port}]: {receivedMessage}");
+        context.Logger.Info($"[Punch] Received from [{remote.Address}:{remote.Port}]: {receivedMessage}");
         if (!PeerPunchInfo.TryParse(receivedMessage, out var peerPunchInfo))
         {
-            app.Logger.Warn($"[Punch] Parsing failed: {receivedMessage}");
+            context.Logger.Warn($"[Punch] Parsing failed: {receivedMessage}");
             return;
         }
 
         // 立即回复当前消息，让客户端知道服务器正在正常工作。
         var replyMessage = $"[Reply] IPEndPoint={remote.Address}:{remote.Port}";
         var packet = UdpPacketCrypto.Encrypt(replyMessage);
-        app.Logger.Info($"[Punch] Replying to [{remote.Address}:{remote.Port}]: {replyMessage}");
+        context.Logger.Info($"[Punch] Replying to [{remote.Address}:{remote.Port}]: {replyMessage}");
         socket.SendTo(packet, remote);
 
         // 更新端点信息。
@@ -63,7 +63,7 @@ public class PunchService(AppContext app)
                     {
                         var startMessage = $"[Start] {info}";
                         var startPacket = UdpPacketCrypto.Encrypt(startMessage);
-                        app.Logger.Info($"[Start] Notify to [({remote.Address}:{remote.Port}]: {startMessage}");
+                        context.Logger.Info($"[Start] Notify to [({remote.Address}:{remote.Port}]: {startMessage}");
                         socket.SendTo(startPacket, info.IPEndPoint!);
                     }
                 }
