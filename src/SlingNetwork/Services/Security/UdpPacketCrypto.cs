@@ -11,12 +11,10 @@ internal static class UdpPacketCrypto
     private static readonly ReadOnlyMemory<byte> Key = Convert.FromHexString(
         "0000000000000000000000000000000000000000000000000000000000000000");
 
-    private const byte Version = 1;
-    private const int VersionSize = sizeof(byte);
     private const int NonceSize = 12;
     private const int TagSize = 16;
     private const int PayloadLengthSize = 2;
-    private static int HeaderSize => VersionSize + NonceSize + TagSize;
+    private static int HeaderSize => NonceSize + TagSize;
 
     public static byte[] Encrypt(string plainText)
     {
@@ -43,10 +41,9 @@ internal static class UdpPacketCrypto
         var payloadLength = Utf8.GetByteCount(plainText);
 
         // 1. 预填充数据。
-        packet[0] = Version;
-        var nonce = packet.Slice(VersionSize, NonceSize);
-        var tag = packet.Slice(VersionSize + NonceSize, TagSize);
-        var plain = packet.Slice(HeaderSize);
+        var nonce = packet[..NonceSize];
+        var tag = packet.Slice(NonceSize, TagSize);
+        var plain = packet[HeaderSize..];
         var cipher = plain;
         plain.Clear();
         packet[HeaderSize] = (byte)(payloadLength >> 8);
@@ -58,7 +55,7 @@ internal static class UdpPacketCrypto
         Span<byte> plainCopy = stackalloc byte[plain.Length];
         plain.CopyTo(plainCopy);
         using var aes = new AesGcm(Key.Span, TagSize);
-        aes.Encrypt(nonce, plainCopy, cipher, tag, packet[..VersionSize]);
+        aes.Encrypt(nonce, plainCopy, cipher, tag);
     }
 
     public static bool TryDecrypt(ReadOnlySpan<byte> packet, [NotNullWhen(true)] out string? plainText)
@@ -75,21 +72,16 @@ internal static class UdpPacketCrypto
             return false;
         }
 
-        if (packet[0] != Version)
-        {
-            return false;
-        }
-
-        var nonce = packet.Slice(VersionSize, NonceSize);
-        var tag = packet.Slice(VersionSize + NonceSize, TagSize);
-        var cipher = packet.Slice(HeaderSize);
+        var nonce = packet[..NonceSize];
+        var tag = packet.Slice(NonceSize, TagSize);
+        var cipher = packet[HeaderSize..];
 
         Span<byte> plain = stackalloc byte[cipher.Length];
 
         try
         {
             using var aes = new AesGcm(Key.Span, TagSize);
-            aes.Decrypt(nonce, cipher, tag, plain, packet[..VersionSize]);
+            aes.Decrypt(nonce, cipher, tag, plain);
         }
         catch (CryptographicException)
         {
