@@ -25,8 +25,12 @@ internal static class UdpPacketCrypto
 
     public static int GetPacketSize(string plainText)
     {
-        var payloadLength = Utf8.GetByteCount(plainText);
-        return PickBucket(HeaderSize + PayloadLengthSize + payloadLength);
+        return GetPacketSize(Utf8.GetByteCount(plainText));
+    }
+
+    public static int GetPacketSize(int plainTextByteCount)
+    {
+        return PickBucket(HeaderSize + PayloadLengthSize + plainTextByteCount);
     }
 
     /// <summary>
@@ -35,7 +39,7 @@ internal static class UdpPacketCrypto
     /// <param name="plainText"></param>
     /// <param name="packet"></param>
     /// <returns></returns>
-    public static void Encrypt(string plainText, Span<byte> packet)
+    public static void Encrypt(ReadOnlySpan<char> plainText, Span<byte> packet)
     {
         // 1. 计算负载长度。
         var payloadLength = Utf8.GetByteCount(plainText);
@@ -43,19 +47,17 @@ internal static class UdpPacketCrypto
         // 1. 预填充数据。
         var nonce = packet[..NonceSize];
         var tag = packet.Slice(NonceSize, TagSize);
-        var plain = packet[HeaderSize..];
-        var cipher = plain;
+        Span<byte> plain = stackalloc byte[packet.Length - HeaderSize];
+        var cipher = packet[HeaderSize..];
         plain.Clear();
         packet[HeaderSize] = (byte)(payloadLength >> 8);
         packet[HeaderSize + 1] = (byte)payloadLength;
         RandomNumberGenerator.Fill(nonce);
-        Utf8.GetBytes(plainText.AsSpan(), plain.Slice(PayloadLengthSize));
+        Utf8.GetBytes(plainText, plain[PayloadLengthSize..]);
 
         // 2. 加密。
-        Span<byte> plainCopy = stackalloc byte[plain.Length];
-        plain.CopyTo(plainCopy);
         using var aes = new AesGcm(Key.Span, TagSize);
-        aes.Encrypt(nonce, plainCopy, cipher, tag);
+        aes.Encrypt(nonce, plain, cipher, tag);
     }
 
     public static bool TryDecrypt(ReadOnlySpan<byte> packet, [NotNullWhen(true)] out string? plainText)
