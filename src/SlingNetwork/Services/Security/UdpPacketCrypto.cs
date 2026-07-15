@@ -30,7 +30,7 @@ internal static class UdpPacketCrypto
     }
 
     /// <summary>
-    /// 将明文加密成固定长度（几个档），报文格式为：[version][nonce][tag][encrypted(length+payload+padding)]。
+    /// 将明文加密成固定长度（几个档），报文格式为：[nonce][tag][encrypted(length+payload+padding)]。
     /// </summary>
     /// <param name="plainText"></param>
     /// <param name="packet"></param>
