@@ -28,8 +28,38 @@ public class NatTestHandler : ICommandHandler<AppContext>
         app.Logger.Info($"NAT test session {session.SessionId} started.");
         var phase = session.Prepare();
 
-        phase = await phase.FilteringPhaseAsync();
-        app.Logger.Info($"NAT filtering: Unknown");
+        if (phase.Phase is NatTestPhase.Filtering)
+        {
+            phase = await phase.FilteringPhaseAsync();
+        }
+
+        if (phase.Phase is NatTestPhase.Mapping)
+        {
+            phase = await phase.MappingPhaseAsync();
+        }
+
+        if (phase.Phase is NatTestPhase.Mapping2)
+        {
+            phase = await phase.Mapping2PhaseAsync();
+        }
+
+        if (phase.Phase is NatTestPhase.Failed)
+        {
+            app.Logger.Warn("NAT test failed.");
+            return 1;
+        }
+
+        if (phase.Phase is NatTestPhase.Success)
+        {
+            var report = phase.Report;
+            app.Logger.Info($"""
+                NAT test result:
+                - Mapping: {report.Mapping}
+                - Filtering: {report.Filtering}
+                - IsPublicEndPoint: {report.IsPublicEndPoint}
+                """);
+            return 1;
+        }
 
         app.Logger.Error("Not implemented");
         return 0;

@@ -10,6 +10,8 @@ public record NatTestReport
     public required NetworkPacketFilteringBehavior Filtering { get; init; }
     public required IPEndPoint LocalEndPoint { get; init; }
     public required IPEndPoint PublicEndPoint { get; init; }
+    public required IPEndPoint AlternateServerPort1PublicEndPoint { get; init; }
+    public required IPEndPoint AlternateServerPort2PublicEndPoint { get; init; }
     public bool IsPublicEndPoint => Equals(LocalEndPoint.Address, PublicEndPoint.Address);
 
     public static NatTestReport Empty { get; } = new NatTestReport
@@ -20,5 +22,7 @@ public record NatTestReport
         Filtering = NetworkPacketFilteringBehavior.EndpointIndependent,
         LocalEndPoint = new IPEndPoint(IPAddress.Loopback, 0),
         PublicEndPoint = new IPEndPoint(IPAddress.Loopback, 0),
+        AlternateServerPort1PublicEndPoint = new IPEndPoint(IPAddress.Loopback, 0),
+        AlternateServerPort2PublicEndPoint = new IPEndPoint(IPAddress.Loopback, 0),
     };
 }

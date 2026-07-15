@@ -96,6 +96,114 @@ public record NatTestClientSessionPhase
         };
     }
 
+    public async Task<NatTestClientSessionPhase> MappingPhaseAsync()
+    {
+        if (Phase is not NatTestPhase.Mapping)
+        {
+            throw new InvalidOperationException("NAT test filtering phase must be done before mapping phase.");
+        }
+
+        using var cts = new CancellationTokenSource();
+
+        using var packetMemory = new NatTestUdpPacket
+        {
+            Header = NatTestUdpPacketHeader.Phase2SClientSend,
+            SessionId = Session.SessionId,
+        }.ToUdpPacket().ToPacketData(out var packetLength);
+        await UdpClient.SendAsync(packetMemory.Memory[..packetLength], cts.Token);
+
+        var receivedPackets = await UdpClient.ReceiveUtilAllMatches(TimeSpan.FromSeconds(10), cts.Token,
+            p => NatTestUdpPacketHeader.ParseFromHeader(p.Header) is NatTestUdpPacketHeader.Phase2RAlternateServerSend);
+        var natTestPacket = receivedPackets.Select(x => x is { } p ? NatTestUdpPacket.TryParse(p) : null).First();
+
+        if (natTestPacket is null)
+        {
+            // 超时，可能 UDP 丢包严重或当前网络不通，应重测
+            return this with
+            {
+                Phase = NatTestPhase.Failed,
+            };
+        }
+
+        var clientPublicEndPointToAlternateServer = IPEndPoint.Parse(NatTestUdpPacket.TryParse(receivedPackets[0]!.Value)!.ClientPublicIPEndPoint!);
+        // 相等说明映射为「端点无关」，否则进行第 3 轮测试
+        if (Equals(Report.PublicEndPoint, clientPublicEndPointToAlternateServer))
+        {
+            return this with
+            {
+                Phase = NatTestPhase.Success,
+                Report = Report with
+                {
+                    Mapping = NatMappingBehavior.EndpointIndependent,
+                },
+            };
+        }
+
+        return this with
+        {
+            Phase = NatTestPhase.Mapping2,
+            Report = Report with
+            {
+                AlternateServerPort1PublicEndPoint = clientPublicEndPointToAlternateServer,
+            },
+        };
+    }
+
+    public async Task<NatTestClientSessionPhase> Mapping2PhaseAsync()
+    {
+        if (Phase is not NatTestPhase.Mapping)
+        {
+            throw new InvalidOperationException("NAT test mapping phase must be done before mapping-2 phase.");
+        }
+
+        using var cts = new CancellationTokenSource();
+
+        using var packetMemory = new NatTestUdpPacket
+        {
+            Header = NatTestUdpPacketHeader.Phase3SClientSend,
+            SessionId = Session.SessionId,
+        }.ToUdpPacket().ToPacketData(out var packetLength);
+        await UdpClient.SendAsync(packetMemory.Memory[..packetLength], cts.Token);
+
+        var receivedPackets = await UdpClient.ReceiveUtilAllMatches(TimeSpan.FromSeconds(10), cts.Token,
+            p => NatTestUdpPacketHeader.ParseFromHeader(p.Header) is NatTestUdpPacketHeader.Phase3RAlternateServerSend);
+        var natTestPacket = receivedPackets.Select(x => x is { } p ? NatTestUdpPacket.TryParse(p) : null).First();
+
+        if (natTestPacket is null)
+        {
+            // 超时，可能 UDP 丢包严重或当前网络不通，应重测
+            return this with
+            {
+                Phase = NatTestPhase.Failed,
+            };
+        }
+
+        var clientPublicEndPointToAlternateServer = IPEndPoint.Parse(NatTestUdpPacket.TryParse(receivedPackets[0]!.Value)!.ClientPublicIPEndPoint!);
+        // 相等说明映射为「地址相关」，否则说明映射为「地址和端口均相关」
+        if (Equals(Report.PublicEndPoint, clientPublicEndPointToAlternateServer))
+        {
+            return this with
+            {
+                Phase = NatTestPhase.Success,
+                Report = Report with
+                {
+                    Mapping = NatMappingBehavior.AddressDependent,
+                    AlternateServerPort2PublicEndPoint = clientPublicEndPointToAlternateServer,
+                },
+            };
+        }
+
+        return this with
+        {
+            Phase = NatTestPhase.Mapping2,
+            Report = Report with
+            {
+                Mapping = NatMappingBehavior.AddressAndPortDependent,
+                AlternateServerPort2PublicEndPoint = clientPublicEndPointToAlternateServer,
+            },
+        };
+    }
+
     private async Task ReceiveLoop(CancellationToken ct)
     {
         while (!ct.IsCancellationRequested)
