@@ -1,14 +1,15 @@
+using System.Buffers;
 using System.Text;
 
 namespace DotNetCampus.SlingNetwork.Transports.Security;
 
-public readonly record struct UdpHeaderKeyValuePacket
+public readonly record struct UdpHeaderedKeyValuePacket
 {
     private static readonly UTF8Encoding Utf8 = new(false, true);
     public required string Header { get; init; }
-    public required IReadOnlyDictionary<string, string> Payload { get; init; }
+    public required IReadOnlyDictionary<string, string?> Payload { get; init; }
 
-    public static UdpHeaderKeyValuePacket? TryParse(Span<byte> packet)
+    public static UdpHeaderedKeyValuePacket? TryParse(Span<byte> packet)
     {
         if (!UdpPacketCrypto.TryDecrypt(packet, out var plainTextString))
         {
@@ -25,7 +26,7 @@ public readonly record struct UdpHeaderKeyValuePacket
         }
 
         var header = plainText[..separatorIndex];
-        var payload = new Dictionary<string, string>();
+        var payload = new Dictionary<string, string?>();
 
         while (separatorIndex >= 0)
         {
@@ -46,11 +47,19 @@ public readonly record struct UdpHeaderKeyValuePacket
             payload[key.ToString()] = value.ToString();
         }
 
-        return new UdpHeaderKeyValuePacket
+        return new UdpHeaderedKeyValuePacket
         {
             Header = header.ToString(),
             Payload = payload,
         };
+    }
+
+    public IMemoryOwner<byte> ToPacketData(out int packetLength)
+    {
+        packetLength = GetPacketLength();
+        var memory = MemoryPool<byte>.Shared.Rent(packetLength);
+        FillInto(memory.Memory.Span);
+        return memory;
     }
 
     public void FillInto(Span<byte> packet)
@@ -66,6 +75,11 @@ public readonly record struct UdpHeaderKeyValuePacket
         var currentIndex = Header.Length;
         foreach (var (key, value) in Payload)
         {
+            if (value is null)
+            {
+                continue;
+            }
+
             // 换行符 \n
             plainText[currentIndex] = '\n';
 
@@ -79,7 +93,7 @@ public readonly record struct UdpHeaderKeyValuePacket
             value.AsSpan().CopyTo(plainText.Slice(currentIndex + 1 + key.Length + 1, value.Length));
 
             // 更新索引
-            currentIndex += key.Length + value.Length + 2;
+            currentIndex += key.Length + (value?.Length ?? 0) + 2;
         }
     }
 
@@ -88,6 +102,11 @@ public readonly record struct UdpHeaderKeyValuePacket
         var length = Utf8.GetByteCount(Header);
         foreach (var (key, value) in Payload)
         {
+            if (value is null)
+            {
+                continue;
+            }
+
             // 换行符 \n
             length += 1;
 
@@ -108,6 +127,11 @@ public readonly record struct UdpHeaderKeyValuePacket
         var count = Header.Length;
         foreach (var (key, value) in Payload)
         {
+            if (value is null)
+            {
+                continue;
+            }
+
             // 换行符 \n
             count += 1;
 

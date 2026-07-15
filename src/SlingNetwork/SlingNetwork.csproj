@@ -14,9 +14,5 @@
     <PackageReference Include="DotNetCampus.SourceLocalizations" />
     <PackageReference Include="TouchSocket.WebApi" />
   </ItemGroup>
-  
-  <ItemGroup>
-    <Folder Include="Transports\" />
-  </ItemGroup>
 
 </Project>
