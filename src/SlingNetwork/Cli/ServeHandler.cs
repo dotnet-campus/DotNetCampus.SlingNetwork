@@ -2,10 +2,10 @@
 using DotNetCampus.Cli.Compiler;
 using DotNetCampus.Cli.Exceptions;
 using DotNetCampus.SlingNetwork.Localizations;
-using DotNetCampus.SlingNetwork.Models;
-using DotNetCampus.SlingNetwork.Services;
-using DotNetCampus.SlingNetwork.Services.ApiHttpServices;
-using DotNetCampus.SlingNetwork.Services.PunchServices;
+using DotNetCampus.SlingNetwork.ServerSide;
+using DotNetCampus.SlingNetwork.ServerSide.ControlServices;
+using DotNetCampus.SlingNetwork.ServerSide.Models;
+using DotNetCampus.SlingNetwork.ServerSide.PunchServices;
 
 namespace DotNetCampus.SlingNetwork.Cli;
 
@@ -52,8 +52,8 @@ public class ServeHandler : ICommandHandler<AppContext>
         };
 
         // 初始化服务。
-        var apiHttpService = new ControlHttpService(serverContext, this);
-        var punchService = new PunchService(serverContext);
+        var apiHttpService = new ControlHttpServer(serverContext, this);
+        var punchService = new PunchServer(serverContext);
 
         // API 服务（http）。
         var signalingServiceTask = apiHttpService.Listen();

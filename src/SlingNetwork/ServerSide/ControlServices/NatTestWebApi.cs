@@ -4,10 +4,10 @@ using TouchSocket.Http;
 using TouchSocket.Rpc;
 using TouchSocket.WebApi;
 
-namespace DotNetCampus.SlingNetwork.Services.ApiHttpServices;
+namespace DotNetCampus.SlingNetwork.ServerSide.ControlServices;
 
 [Router("/api/v1/nat-test")]
-public class NatTestHttpServer(ServeHandler serverInfo) : SingletonRpcServer
+public class NatTestWebApi(ServeHandler serverInfo) : SingletonRpcServer
 {
     [Router("new")]
     [WebApi(Method = HttpMethodType.Post)]

@@ -1,7 +1,7 @@
 ﻿using DotNetCampus.Logging;
-using DotNetCampus.SlingNetwork.Models;
+using DotNetCampus.SlingNetwork.ServerSide.Models;
 
-namespace DotNetCampus.SlingNetwork.Services;
+namespace DotNetCampus.SlingNetwork.ServerSide;
 
 public class ServerContext
 {

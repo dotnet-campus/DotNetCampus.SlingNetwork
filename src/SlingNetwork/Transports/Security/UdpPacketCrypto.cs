@@ -2,7 +2,7 @@
 using System.Security.Cryptography;
 using System.Text;
 
-namespace DotNetCampus.SlingNetwork.Services.Security;
+namespace DotNetCampus.SlingNetwork.Transports.Security;
 
 internal static class UdpPacketCrypto
 {

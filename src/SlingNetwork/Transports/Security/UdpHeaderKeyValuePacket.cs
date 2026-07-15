@@ -1,6 +1,6 @@
 using System.Text;
 
-namespace DotNetCampus.SlingNetwork.Services.Security;
+namespace DotNetCampus.SlingNetwork.Transports.Security;
 
 public readonly record struct UdpHeaderKeyValuePacket
 {

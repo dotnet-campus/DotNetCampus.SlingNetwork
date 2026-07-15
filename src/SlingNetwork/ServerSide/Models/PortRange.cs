@@ -1,6 +1,6 @@
 ﻿using System.Globalization;
 
-namespace DotNetCampus.SlingNetwork.Models;
+namespace DotNetCampus.SlingNetwork.ServerSide.Models;
 
 public readonly record struct PortRange(ushort Min, ushort Max)
 {

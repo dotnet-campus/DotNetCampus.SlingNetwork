@@ -7,7 +7,7 @@ using DotNetCampus.Logging;
 using DotNetCampus.Logging.Writers;
 using DotNetCampus.SlingNetwork.Cli;
 using DotNetCampus.SlingNetwork.Localizations;
-using DotNetCampus.SlingNetwork.Services.ApiHttpServices;
+using DotNetCampus.SlingNetwork.ServerSide.ControlServices;
 
 namespace DotNetCampus.SlingNetwork;
 

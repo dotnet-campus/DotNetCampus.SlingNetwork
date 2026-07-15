@@ -6,9 +6,9 @@ using TouchSocket.Http;
 using TouchSocket.Rpc;
 using TouchSocket.Sockets;
 
-namespace DotNetCampus.SlingNetwork.Services.ApiHttpServices;
+namespace DotNetCampus.SlingNetwork.ServerSide.ControlServices;
 
-public class ControlHttpService(ServerContext context, ServeHandler serverInfo)
+public class ControlHttpServer(ServerContext context, ServeHandler serverInfo)
 {
     public async Task Listen()
     {
@@ -30,7 +30,7 @@ public class ControlHttpService(ServerContext context, ServeHandler serverInfo)
                 a.RegisterSingleton<ServeHandler>(_ => serverInfo);
                 a.AddRpcStore(store =>
                 {
-                    store.RegisterServer<PunchHttpServer>();
+                    store.RegisterServer<PunchWebApi>();
                 });
             })
             .ConfigurePlugins(a =>

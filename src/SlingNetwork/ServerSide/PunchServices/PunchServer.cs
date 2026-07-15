@@ -4,11 +4,11 @@ using System.Net;
 using System.Net.Sockets;
 using System.Text;
 using DotNetCampus.Logging;
-using DotNetCampus.SlingNetwork.Services.Security;
+using DotNetCampus.SlingNetwork.Transports.Security;
 
-namespace DotNetCampus.SlingNetwork.Services.PunchServices;
+namespace DotNetCampus.SlingNetwork.ServerSide.PunchServices;
 
-public class PunchService(ServerContext context)
+public class PunchServer(ServerContext context)
 {
     private readonly ConcurrentDictionary<string, Dictionary<string, PeerPunchInfo>> _punchingPeers = [];
 
