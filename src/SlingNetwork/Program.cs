@@ -28,6 +28,7 @@ internal static class Program
                 .ForState(appContext)
                 .AddHandler<DefaultHandler>()
                 .AddHandler<ServeHandler>()
+                .AddHandler<NatTestHandler>()
                 .AddHandler<ConnectHandler>()
                 .RunAsync();
         }

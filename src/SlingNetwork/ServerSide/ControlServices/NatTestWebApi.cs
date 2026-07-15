@@ -58,12 +58,3 @@ public record NatTestForwardRequest
 
     public required int Port { get; init; }
 }
-
-public record NatTestUdpProbeTask
-{
-    [JsonPropertyName("target")]
-    public string Foo { get; init; }
-
-    [JsonPropertyName("payload")]
-    public required string Utf8PacketPayload { get; init; }
-}
