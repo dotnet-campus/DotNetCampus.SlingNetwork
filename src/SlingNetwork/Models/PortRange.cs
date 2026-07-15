@@ -54,8 +54,30 @@ public readonly record struct PortRange(ushort Min, ushort Max)
             : $"{Min}-{Max}";
     }
 
-    public ushort Random()
+    public int Random()
     {
-        return (ushort)System.Random.Shared.Next(Min, Max + 1);
+        return System.Random.Shared.Next(Min, Max + 1);
+    }
+
+    public bool RandomTo(Span<int> ports)
+    {
+        var count = Max - Min + 1;
+        if (count < ports.Length || ports.Length <= 0)
+        {
+            return false;
+        }
+
+        ports.Clear();
+        ports[0] = System.Random.Shared.Next(Min, Max + 1);
+        for (var i = 1; i < ports.Length; i++)
+        {
+            var port = System.Random.Shared.Next(Min, Max + 1);
+            while (ports[..i].Contains(port))
+            {
+                port = System.Random.Shared.Next(Min, Max + 1);
+            }
+            ports[i] = port;
+        }
+        return true;
     }
 }

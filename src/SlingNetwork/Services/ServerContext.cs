@@ -18,5 +18,5 @@ public record ServerUdpInfo
 
     public required IReadOnlyList<string> Hosts { get; init; }
 
-    public required ushort Port { get; init; }
+    public required int Port { get; init; }
 }
