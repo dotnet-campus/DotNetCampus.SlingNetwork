@@ -3,8 +3,9 @@
 假定 `vps-config-name` 为 VPS 配置名，也可以是 `user@server-ip`，`admin` 为目标用户名。
 
 ```powershell
-# 对于不支持交叉编译的平台，暂时禁用 AOT 发布
-dotnet publish .\src\SlingNetwork\ -r linux-x64 -p:PublishAot=false,PublishSingleFile=true --sc
+# 本仓库支持交叉编译到 Linux，但要禁用 ICU 避免出现异常
+# Couldn't find a valid ICU package installed on the system. Please install libicu (or icu-libs) using your package manager and try again.
+dotnet publish .\src\SlingNetwork\ -r linux-x64 -p:InvariantGlobalization=true
 # 拷贝到目标 VPS
 scp .\artifacts\publish\SlingNetwork\release_linux-x64\sling vps-config-name:/home/admin/DotNetCampus.SlingNetwork/sling
 # 连接到 VPS
@@ -55,9 +56,8 @@ sudo ufw allow \
 cd ./DotNetCampus.SlingNetwork
 # 增加执行权限
 chmod +x ./sling
-# 禁用区域文化，否则会提示
-# Couldn't find a valid ICU package installed on the system. Please install libicu (or icu-libs) using your package manager and try again.
-export DOTNET_SYSTEM_GLOBALIZATION_INVARIANT=1
+# 如果前面构建时没有禁用 ICU，则需要设置环境变量
+# export DOTNET_SYSTEM_GLOBALIZATION_INVARIANT=1
 # 运行服务器
 ./sling serve -l 0.0.0.0:5451 -l [::]:5451 -a 127.0.0.1:5453 -b https://nat-test-1.walterlv.com -p 50000-51000
 ```

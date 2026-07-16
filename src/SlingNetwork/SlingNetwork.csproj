@@ -12,6 +12,7 @@
     <PackageReference Include="DotNetCampus.CommandLine" />
     <PackageReference Include="DotNetCampus.Logger" />
     <PackageReference Include="DotNetCampus.SourceLocalizations" />
+    <PackageReference Include="PublishAotClang" />
     <PackageReference Include="TouchSocket.WebApi" />
   </ItemGroup>
 

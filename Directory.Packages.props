@@ -10,6 +10,7 @@
     <PackageVersion Include="Microsoft.SourceLink.GitHub" Version="1.0.0" />
     <PackageVersion Include="MSTest.TestAdapter" Version="3.4.3" />
     <PackageVersion Include="MSTest.TestFramework" Version="3.4.3" />
+    <PackageVersion Include="PublishAotClang" Version="1.0.5" />
     <PackageVersion Include="TouchSocket.Http" Version="4.1.0" />
     <PackageVersion Include="TouchSocket.WebApi" Version="4.2.16" />
   </ItemGroup>
