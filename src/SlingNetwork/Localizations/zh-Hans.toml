@@ -13,6 +13,7 @@ Command.NatTestHandler.Description = "使用指定的控制服务器进行一次
 Command.NatTestHandler.ControlUrl = "指定要连接哪一个控制服务器，辅助本客户端完成 NAT 类型探测任务。"
 Command.NatTestHandler.PacketRepeatCount = "每个 UDP 包重复发多少次（在网络环境较差时，可多选择几次，默认 1）。"
 Command.NatTestHandler.PacketRepeatDelay = "当需要重复发 UDP 包时，重发的时间延迟（单位 ms，默认 500ms）。"
+Command.NatTestHandler.Verbose = "输出详细的 NAT 测试报告，而非单纯给出 NAT 类型结论。"
 Command.ParseValueException.IPEndPoint = "指定的值“{value:string}”不是有效的 IP:Port 格式。"
 Command.ParseValueException.PortRange = "指定的值“{value:string}”不是有效的端口或端口范围。有效格式示例：1000 或 1000-1999（两端包含）。"
 Command.ParseValueException.Url = "指定的值“{value:string}”不是有效的 URL。"

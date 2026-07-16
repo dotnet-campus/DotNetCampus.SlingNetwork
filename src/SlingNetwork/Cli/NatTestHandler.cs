@@ -18,6 +18,9 @@ public class NatTestHandler : ICommandHandler<AppContext>
     [Option('d', "repeat-delay", ValueName = "milliseconds", Description = "Command.NatTestHandler.PacketRepeatDelay")]
     public int? PacketRepeatDelay { get; init; }
 
+    [Option('v', "verbose", Description = "Command.NatTestHandler.Verbose")]
+    public bool Verbose { get; init; }
+
     public async Task<int> RunAsync(AppContext app)
     {
         app.Logger.Info($"Requesting a NAT test to {ControlUrl}...");
@@ -58,12 +61,26 @@ public class NatTestHandler : ICommandHandler<AppContext>
         if (phase.Phase is NatTestPhase.Success)
         {
             var report = phase.Report;
-            app.Logger.Info($"""
+            var result = Verbose
+                ? $"""
+                NAT test result:
+                - Success: {report.Success}
+                - SessionId: {report.SessionId}
+                - Mapping: {report.Mapping}
+                - Filtering: {report.Filtering}
+                - ClientLocalEndPoint: {report.ClientLocalEndPoint}
+                - ClientPublicEndPoint1: {report.ClientPublicEndPoint}
+                - ClientPublicEndPoint2: {report.ClientPublicEndPointToAlternateServerPort1}
+                - ClientPublicEndPoint3: {report.ClientPublicEndPointToAlternateServerPort2}
+                - IsPublicEndPoint: {report.IsPublicEndPoint}
+                """
+                : $"""
                 NAT test result:
                 - Mapping: {report.Mapping}
                 - Filtering: {report.Filtering}
                 - IsPublicEndPoint: {report.IsPublicEndPoint}
-                """);
+                """;
+            app.Logger.Info(result);
             return 1;
         }
 
