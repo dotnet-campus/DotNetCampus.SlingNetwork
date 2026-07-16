@@ -32,7 +32,7 @@ internal class UdpPacketReceiver(UdpClient udpClient, ILogger logger, string log
                 continue;
             }
 
-            var remoteEndPoint = result.RemoteEndPoint;
+            var remoteEndPoint = result.RemoteEndPoint.Normalize();
             Memory<byte> receivedPacketMemory = result.Buffer;
 
             var receivedPacketValue = UdpHeaderedKeyValuePacket.TryParse(receivedPacketMemory.Span);

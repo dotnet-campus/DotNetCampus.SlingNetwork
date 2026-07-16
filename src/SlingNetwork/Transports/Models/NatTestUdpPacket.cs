@@ -95,6 +95,7 @@ public enum NatTestUdpPacketHeader
     Phase2RAlternateServerSend,
     Phase3SClientSend,
     Phase3RAlternateServerSend,
+    Phase4Finish,
 }
 
 public static class NatTestUdpPacketHeaderExtensions
@@ -111,6 +112,7 @@ public static class NatTestUdpPacketHeaderExtensions
             NatTestUdpPacketHeader.Phase2RAlternateServerSend => "[NAT-2R]",
             NatTestUdpPacketHeader.Phase3SClientSend => "[NAT-3S]",
             NatTestUdpPacketHeader.Phase3RAlternateServerSend => "[NAT-3R]",
+            NatTestUdpPacketHeader.Phase4Finish => "[NAT-4F]",
             _ => throw new InvalidEnumArgumentException(nameof(header), (int)header, typeof(NatTestUdpPacketHeader)),
         };
 
@@ -124,6 +126,7 @@ public static class NatTestUdpPacketHeaderExtensions
             "[NAT-2R]" => NatTestUdpPacketHeader.Phase2RAlternateServerSend,
             "[NAT-3S]" => NatTestUdpPacketHeader.Phase3SClientSend,
             "[NAT-3R]" => NatTestUdpPacketHeader.Phase3RAlternateServerSend,
+            "[NAT-4F]" => NatTestUdpPacketHeader.Phase4Finish,
             _ => throw new ArgumentException($"Invalid NAT test header."),
         };
     }

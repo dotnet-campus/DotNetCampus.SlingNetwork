@@ -52,6 +52,11 @@ public class NatTestHandler : ICommandHandler<AppContext>
             phase = await phase.Mapping2PhaseAsync();
         }
 
+        if (phase.Phase is NatTestPhase.Success or NatTestPhase.Failed)
+        {
+            await phase.FinishAsync();
+        }
+
         if (phase.Phase is NatTestPhase.Failed)
         {
             app.Logger.Warn("NAT test failed.");
@@ -71,7 +76,7 @@ public class NatTestHandler : ICommandHandler<AppContext>
                 - ClientLocalEndPoint: {report.ClientLocalEndPoint}
                 - ClientPublicEndPoint1: {report.ClientPublicEndPoint}
                 - ClientPublicEndPoint2: {report.ClientPublicEndPointToAlternateServerPort1}
-                - ClientPublicEndPoint3: {report.ClientPublicEndPointToAlternateServerPort2}
+                - ClientPublicEndPoint3: {report.ClientPublicEndPointToAlternateServerPort2?.ToString() ?? "NotTested"}
                 - IsPublicEndPoint: {report.IsPublicEndPoint}
                 """
                 : $"""
@@ -81,7 +86,7 @@ public class NatTestHandler : ICommandHandler<AppContext>
                 - IsPublicEndPoint: {report.IsPublicEndPoint}
                 """;
             app.Logger.Info(result);
-            return 1;
+            return 0;
         }
 
         app.Logger.Error("Not implemented");

@@ -34,7 +34,10 @@ public class NatTestClientSession
             Phase = NatTestPhase.Filtering,
             Session = this,
             UdpClient = UdpClientFactory.CreateNew(0),
-            Report = NatTestReport.Empty,
+            Report = NatTestReport.Empty with
+            {
+                SessionId = SessionId,
+            },
         };
         return phase;
     }
@@ -70,9 +73,40 @@ public record NatTestClientSessionPhase
         await UdpClient.SendAsync(packetMemory.Memory[..packetLength], remoteEndPoint, cts.Token);
 
         var receivedPackets = await receiver.ReceiveUtilAllMatches(cts.Token,
-            (_, p) => NatTestUdpPacketHeader.ParseFromHeader(p.Header) is NatTestUdpPacketHeader.Phase1RMainServerReply,
-            (_, p) => NatTestUdpPacketHeader.ParseFromHeader(p.Header) is NatTestUdpPacketHeader.Phase11MainServerSend,
-            (_, p) => NatTestUdpPacketHeader.ParseFromHeader(p.Header) is NatTestUdpPacketHeader.Phase12AlternateServerSend);
+            (ep, p) => MatchesPacket(
+                ep, p, NatTestUdpPacketHeader.Phase1RMainServerReply,
+                new IPEndPoint(Session.Server1Address, Session.Server1Port1)),
+            (ep, p) => MatchesPacket(
+                ep, p, NatTestUdpPacketHeader.Phase11MainServerSend,
+                new IPEndPoint(Session.Server1Address, Session.Server1Port2)),
+            (ep, p) => MatchesPacket(
+                ep, p, NatTestUdpPacketHeader.Phase12AlternateServerSend,
+                Session.Server2Address));
+
+        var phase1Reply = receivedPackets[0] is { UdpPacket: var phase1ReplyPacket }
+            ? NatTestUdpPacket.TryParse(phase1ReplyPacket)
+            : null;
+        if (phase1Reply is null)
+        {
+            return this with
+            {
+                Phase = NatTestPhase.Failed,
+            };
+        }
+
+        if (receivedPackets[2] is { RemoteEndPoint: { } alternateServerEndPoint }
+            && alternateServerEndPoint.Port != phase1Reply.AlternateServerPort1)
+        {
+            receivedPackets[2] = null;
+        }
+
+        var discoveredReport = Report with
+        {
+            AlternateServerPort1 = phase1Reply.AlternateServerPort1 ?? 0,
+            AlternateServerPort2 = phase1Reply.AlternateServerPort2 ?? 0,
+            ClientLocalEndPoint = (IPEndPoint)UdpClient.Client.LocalEndPoint!,
+            ClientPublicEndPoint = IPEndPoint.Parse(phase1Reply.ClientPublicIPEndPoint!).Normalize(),
+        };
 
         NetworkPacketFilteringBehavior? filtering = (receivedPackets[0], receivedPackets[1], receivedPackets[2]) switch
         {
@@ -87,20 +121,16 @@ public record NatTestClientSessionPhase
             return this with
             {
                 Phase = NatTestPhase.Failed,
+                Report = discoveredReport,
             };
         }
 
-        var natTestUdpPacket = NatTestUdpPacket.TryParse(receivedPackets[0]!.Value.UdpPacket)!;
         return this with
         {
             Phase = NatTestPhase.Mapping,
-            Report = Report with
+            Report = discoveredReport with
             {
                 Filtering = filtering.Value,
-                AlternateServerPort1 = natTestUdpPacket.AlternateServerPort1 ?? 0,
-                AlternateServerPort2 = natTestUdpPacket.AlternateServerPort2 ?? 0,
-                ClientLocalEndPoint = (IPEndPoint)UdpClient.Client.LocalEndPoint!,
-                ClientPublicEndPoint = IPEndPoint.Parse(natTestUdpPacket.ClientPublicIPEndPoint!),
             },
         };
     }
@@ -125,8 +155,10 @@ public record NatTestClientSessionPhase
         await UdpClient.SendAsync(packetMemory.Memory[..packetLength], remoteEndPoint, cts.Token);
 
         var receivedPackets = await receiver.ReceiveUtilAllMatches(cts.Token,
-            (_, p) => NatTestUdpPacketHeader.ParseFromHeader(p.Header) is NatTestUdpPacketHeader.Phase2RAlternateServerSend);
-        var natTestPacket = receivedPackets.Select(x => x is { } p ? NatTestUdpPacket.TryParse(p.UdpPacket) : null).First();
+            (ep, p) => MatchesPacket(ep, p, NatTestUdpPacketHeader.Phase2RAlternateServerSend, remoteEndPoint));
+        var natTestPacket = receivedPackets[0] is { UdpPacket: var receivedPacket }
+            ? NatTestUdpPacket.TryParse(receivedPacket)
+            : null;
 
         if (natTestPacket is null)
         {
@@ -137,7 +169,7 @@ public record NatTestClientSessionPhase
             };
         }
 
-        var clientPublicEndPointToAlternateServer = IPEndPoint.Parse(NatTestUdpPacket.TryParse(receivedPackets[0]!.Value.UdpPacket)!.ClientPublicIPEndPoint!);
+        var clientPublicEndPointToAlternateServer = IPEndPoint.Parse(natTestPacket.ClientPublicIPEndPoint!).Normalize();
         // 相等说明映射为「端点无关」，否则进行第 3 轮测试
         if (Equals(Report.ClientPublicEndPoint, clientPublicEndPointToAlternateServer))
         {
@@ -146,9 +178,10 @@ public record NatTestClientSessionPhase
                 Phase = NatTestPhase.Success,
                 Report = Report with
                 {
+                    Success = true,
                     Mapping = NatMappingBehavior.EndpointIndependent,
                     ClientPublicEndPointToAlternateServerPort1 = clientPublicEndPointToAlternateServer,
-                    ClientPublicEndPointToAlternateServerPort2 = clientPublicEndPointToAlternateServer,
+                    ClientPublicEndPointToAlternateServerPort2 = null,
                 },
             };
         }
@@ -159,14 +192,13 @@ public record NatTestClientSessionPhase
             Report = Report with
             {
                 ClientPublicEndPointToAlternateServerPort1 = clientPublicEndPointToAlternateServer,
-                ClientPublicEndPointToAlternateServerPort2 = clientPublicEndPointToAlternateServer,
             },
         };
     }
 
     public async Task<NatTestClientSessionPhase> Mapping2PhaseAsync()
     {
-        if (Phase is not NatTestPhase.Mapping)
+        if (Phase is not NatTestPhase.Mapping2)
         {
             throw new InvalidOperationException("NAT test mapping phase must be done before mapping-2 phase.");
         }
@@ -180,12 +212,14 @@ public record NatTestClientSessionPhase
             SessionId = Session.SessionId,
         }.ToUdpPacket().ToPacketData(out var packetLength);
         var remoteEndPoint = new IPEndPoint(Session.Server2Address, Report.AlternateServerPort2);
-        Session.Logger.Info($"[NAT-TEST][{Session.SessionId[..8]}] UDP {NatTestUdpPacketHeader.Phase2SClientSend.ToHeaderString()} to {remoteEndPoint}");
+        Session.Logger.Info($"[NAT-TEST][{Session.SessionId[..8]}] UDP {NatTestUdpPacketHeader.Phase3SClientSend.ToHeaderString()} to {remoteEndPoint}");
         await UdpClient.SendAsync(packetMemory.Memory[..packetLength], remoteEndPoint, cts.Token);
 
         var receivedPackets = await receiver.ReceiveUtilAllMatches(cts.Token,
-            (_, p) => NatTestUdpPacketHeader.ParseFromHeader(p.Header) is NatTestUdpPacketHeader.Phase3RAlternateServerSend);
-        var natTestPacket = receivedPackets.Select(x => x is { } p ? NatTestUdpPacket.TryParse(p.UdpPacket) : null).First();
+            (ep, p) => MatchesPacket(ep, p, NatTestUdpPacketHeader.Phase3RAlternateServerSend, remoteEndPoint));
+        var natTestPacket = receivedPackets[0] is { UdpPacket: var receivedPacket }
+            ? NatTestUdpPacket.TryParse(receivedPacket)
+            : null;
 
         if (natTestPacket is null)
         {
@@ -196,15 +230,16 @@ public record NatTestClientSessionPhase
             };
         }
 
-        var clientPublicEndPointToAlternateServer = IPEndPoint.Parse(NatTestUdpPacket.TryParse(receivedPackets[0]!.Value.UdpPacket)!.ClientPublicIPEndPoint!);
+        var clientPublicEndPointToAlternateServer = IPEndPoint.Parse(natTestPacket.ClientPublicIPEndPoint!).Normalize();
         // 相等说明映射为「地址相关」，否则说明映射为「地址和端口均相关」
-        if (Equals(Report.ClientPublicEndPoint, clientPublicEndPointToAlternateServer))
+        if (Equals(Report.ClientPublicEndPointToAlternateServerPort1, clientPublicEndPointToAlternateServer))
         {
             return this with
             {
                 Phase = NatTestPhase.Success,
                 Report = Report with
                 {
+                    Success = true,
                     Mapping = NatMappingBehavior.AddressDependent,
                     ClientPublicEndPointToAlternateServerPort2 = clientPublicEndPointToAlternateServer,
                 },
@@ -213,13 +248,65 @@ public record NatTestClientSessionPhase
 
         return this with
         {
-            Phase = NatTestPhase.Mapping2,
+            Phase = NatTestPhase.Success,
             Report = Report with
             {
+                Success = true,
                 Mapping = NatMappingBehavior.AddressAndPortDependent,
                 ClientPublicEndPointToAlternateServerPort2 = clientPublicEndPointToAlternateServer,
             },
         };
+    }
+
+    public async Task FinishAsync()
+    {
+        using var cts = new CancellationTokenSource();
+        using var packetMemory = new NatTestUdpPacket
+        {
+            Header = NatTestUdpPacketHeader.Phase4Finish,
+            SessionId = Session.SessionId,
+        }.ToUdpPacket().ToPacketData(out var packetLength);
+
+        var server1EndPoint = new IPEndPoint(Session.Server1Address, Session.Server1Port1);
+        Session.Logger.Info($"[NAT-TEST][{Session.SessionId[..8]}] UDP {NatTestUdpPacketHeader.Phase4Finish.ToHeaderString()} to {server1EndPoint}");
+        await UdpClient.SendAsync(packetMemory.Memory[..packetLength], server1EndPoint, cts.Token);
+
+        if (Report.AlternateServerPort1 > 0)
+        {
+            var server2EndPoint = new IPEndPoint(Session.Server2Address, Report.AlternateServerPort1);
+            Session.Logger.Info($"[NAT-TEST][{Session.SessionId[..8]}] UDP {NatTestUdpPacketHeader.Phase4Finish.ToHeaderString()} to {server2EndPoint}");
+            await UdpClient.SendAsync(packetMemory.Memory[..packetLength], server2EndPoint, cts.Token);
+        }
+    }
+
+    private bool MatchesPacket(
+        IPEndPoint remoteEndPoint,
+        UdpHeaderedKeyValuePacket packet,
+        NatTestUdpPacketHeader expectedHeader,
+        IPEndPoint expectedRemoteEndPoint)
+    {
+        return MatchesPacketPayload(packet, expectedHeader)
+               && Equals(remoteEndPoint.Normalize(), expectedRemoteEndPoint.Normalize());
+    }
+
+    private bool MatchesPacket(
+        IPEndPoint remoteEndPoint,
+        UdpHeaderedKeyValuePacket packet,
+        NatTestUdpPacketHeader expectedHeader,
+        IPAddress expectedRemoteAddress)
+    {
+        return MatchesPacketPayload(packet, expectedHeader)
+               && Equals(
+                   remoteEndPoint.Address.Normalize(),
+                   expectedRemoteAddress.Normalize());
+    }
+
+    private bool MatchesPacketPayload(
+        UdpHeaderedKeyValuePacket packet,
+        NatTestUdpPacketHeader expectedHeader)
+    {
+        return packet.Header == expectedHeader.ToHeaderString()
+               && packet.Payload.GetValueOrDefault(nameof(NatTestUdpPacket.SessionId)) == Session.SessionId;
     }
 }
 
