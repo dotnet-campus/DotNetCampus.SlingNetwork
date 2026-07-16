@@ -30,9 +30,9 @@ public class NatTestClient(AppContext app)
             return Result.Failed($"Control server {controlUrl} nat test request failed.");
         }
 
-        var server1Addresses = await LookupIpAddressesAsync([new Uri(controlUrl).Host]);
+        var server1Addresses = await LookupIpAddressesAsync([(controlUrl, new Uri(controlUrl).Host)]);
         var server1Address = server1Addresses.FirstOrDefault(x => x.IP.AddressFamily == addressFamily).IP;
-        var server2Addresses = await LookupIpAddressesAsync(natTestSession.AlternateServerList?.Select(x => new Uri(x).Host).ToList() ?? []);
+        var server2Addresses = await LookupIpAddressesAsync(natTestSession.AlternateServerList?.Select(x => (x, new Uri(x).Host)).ToList() ?? []);
         var server2HostIP = server2Addresses.FirstOrDefault(x => x.IP.AddressFamily == addressFamily);
 
         if (server1Address is null)
@@ -50,24 +50,24 @@ public class NatTestClient(AppContext app)
             Server1Address = server1Address,
             Server1Port1 = natTestSession.Port1,
             Server1Port2 = natTestSession.Port2,
-            Server2Host = server2HostIP.Host,
+            Server2Url = server2HostIP.Url,
             Server2Address = server2HostIP.IP,
             Logger = app.Logger,
         });
     }
 
-    private async Task<IReadOnlyList<(string Host, IPAddress IP)>> LookupIpAddressesAsync(IReadOnlyList<string> hosts)
+    private async Task<IReadOnlyList<(string Url, string Host, IPAddress IP)>> LookupIpAddressesAsync(IReadOnlyList<(string Url, string Host)> sources)
     {
-        var result = new List<(string, IPAddress)>();
+        var result = new List<(string, string, IPAddress)>();
         var ipAddresses = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-        foreach (var host in hosts)
+        foreach (var (url, host) in sources)
         {
             var addresses = await Dns.GetHostAddressesAsync(host);
             foreach (var address in addresses)
             {
                 if (ipAddresses.Add(address.ToString()))
                 {
-                    result.Add((host, address));
+                    result.Add((url, host, address));
                 }
             }
         }

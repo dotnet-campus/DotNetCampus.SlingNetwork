@@ -1,7 +1,9 @@
-﻿using DotNetCampus.Logging;
+﻿using System.Text.Json;
+using DotNetCampus.Logging;
 using DotNetCampus.SlingNetwork.Applications.NatTest;
 using DotNetCampus.SlingNetwork.Cli;
 using DotNetCampus.SlingNetwork.Framework;
+using DotNetCampus.SlingNetwork.Transports;
 using DotNetCampus.SlingNetwork.Transports.Models;
 using TouchSocket.Http;
 using TouchSocket.Rpc;
@@ -45,8 +47,11 @@ public class NatTestWebApi(ServeHandler serverInfo, HttpClient httpClient, ILogg
 
     [Router("/api/v1/nat-test/forward")]
     [WebApi(Method = HttpMethodType.Post)]
-    public NatTestSession Forward(IWebApiCallContext context, NatTestForwardRequest request)
+    public async Task<NatTestSession> Forward(IWebApiCallContext context /*, NatTestForwardRequest request*/)
     {
+        var response = await context.HttpContext.Request.GetBodyAsync();
+        var request = JsonSerializer.Deserialize(response, TransportJsonContext.Default.NatTestForwardRequest)!;
+
         Span<int> portPair = stackalloc int[2];
         serverInfo.UdpPortRange.RandomTo(portPair);
 
@@ -61,7 +66,6 @@ public class NatTestWebApi(ServeHandler serverInfo, HttpClient httpClient, ILogg
             SessionId = request.SessionId,
             Port1 = portPair[0],
             Port2 = portPair[1],
-            AlternateServerList = serverInfo.PartnerControlUrls,
         };
     }
 }

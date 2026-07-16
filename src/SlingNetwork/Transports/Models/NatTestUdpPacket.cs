@@ -22,10 +22,10 @@ public record NatTestUdpPacket
     public required string SessionId { get; init; }
 
     /// <summary>
-    /// 备用控制服务器的域名。客户端希望主服务器向备用服务器申请 NAT 辅助测试，辅助客户端完成 NAT 类型探测任务。
+    /// 备用控制服务器的地址。客户端希望主服务器向备用服务器申请 NAT 辅助测试，辅助客户端完成 NAT 类型探测任务。
     /// </summary>
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
-    public string? AlternateServer { get; init; }
+    public string? AlternateServerUrl { get; init; }
 
     /// <summary>
     /// 客户端在公网上看起来的 IP:Port 端点。在不同控制服务器看来，客户端的 IP:Port 端点可能是不同的。
@@ -51,7 +51,7 @@ public record NatTestUdpPacket
         Payload = new Dictionary<string, string?>
         {
             [nameof(SessionId)] = SessionId,
-            [nameof(AlternateServer)] = AlternateServer,
+            [nameof(AlternateServerUrl)] = AlternateServerUrl,
             [nameof(ClientPublicIPEndPoint)] = ClientPublicIPEndPoint,
             [nameof(AlternateServerPort1)] = AlternateServerPort1?.ToString(CultureInfo.InvariantCulture),
             [nameof(AlternateServerPort2)] = AlternateServerPort2?.ToString(CultureInfo.InvariantCulture),
@@ -62,7 +62,7 @@ public record NatTestUdpPacket
     {
         var header = NatTestUdpPacketHeader.ParseFromHeader(packet.Header);
         var sessionId = packet.Payload.GetValueOrDefault(nameof(SessionId));
-        var alternateServer = packet.Payload.GetValueOrDefault(nameof(AlternateServer));
+        var alternateServerUrl = packet.Payload.GetValueOrDefault(nameof(AlternateServerUrl));
         var clientPublicIPEndPoint = packet.Payload.GetValueOrDefault(nameof(ClientPublicIPEndPoint));
         var alternateServerPort1String = packet.Payload.GetValueOrDefault(nameof(AlternateServerPort1));
         var alternateServerPort2String = packet.Payload.GetValueOrDefault(nameof(AlternateServerPort2));
@@ -74,7 +74,7 @@ public record NatTestUdpPacket
         {
             Header = header,
             SessionId = sessionId,
-            AlternateServer = alternateServer,
+            AlternateServerUrl = alternateServerUrl,
             ClientPublicIPEndPoint = clientPublicIPEndPoint,
             AlternateServerPort1 = int.TryParse(alternateServerPort1String, NumberStyles.Integer, CultureInfo.InvariantCulture, out var alternateServerPort1)
                 ? alternateServerPort1

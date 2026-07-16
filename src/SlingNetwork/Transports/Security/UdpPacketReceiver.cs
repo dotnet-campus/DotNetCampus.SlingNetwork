@@ -1,12 +1,12 @@
 using System.Net;
 using System.Net.Sockets;
+using DotNetCampus.Logging;
 
 namespace DotNetCampus.SlingNetwork.Transports.Security;
 
-internal static class UdpClientExtensions
+internal class UdpPacketReceiver(UdpClient udpClient, ILogger logger, string loggerTag, TimeSpan timeout)
 {
-    public static async Task<(IPEndPoint RemoteEndPoint, UdpHeaderedKeyValuePacket UdpPacket)?[]> ReceiveUtilAllMatches(this UdpClient udpClient,
-        TimeSpan timeout,
+    public async Task<(IPEndPoint RemoteEndPoint, UdpHeaderedKeyValuePacket UdpPacket)?[]> ReceiveUtilAllMatches(
         CancellationToken cancellationToken,
         params Func<IPEndPoint, UdpHeaderedKeyValuePacket, bool>[] udpPacketMatchers)
     {
@@ -41,6 +41,7 @@ internal static class UdpClientExtensions
                 continue;
             }
 
+            logger.Info($"{loggerTag} UDP {receivedPacket.Header} from {remoteEndPoint}");
             for (var i = 0; i < udpPacketMatchers.Length; i++)
             {
                 var matcher = udpPacketMatchers[i];
