@@ -147,6 +147,8 @@ public record NatTestClientSessionPhase
                 Report = Report with
                 {
                     Mapping = NatMappingBehavior.EndpointIndependent,
+                    ClientPublicEndPointToAlternateServerPort1 = clientPublicEndPointToAlternateServer,
+                    ClientPublicEndPointToAlternateServerPort2 = clientPublicEndPointToAlternateServer,
                 },
             };
         }
@@ -157,6 +159,7 @@ public record NatTestClientSessionPhase
             Report = Report with
             {
                 ClientPublicEndPointToAlternateServerPort1 = clientPublicEndPointToAlternateServer,
+                ClientPublicEndPointToAlternateServerPort2 = clientPublicEndPointToAlternateServer,
             },
         };
     }
