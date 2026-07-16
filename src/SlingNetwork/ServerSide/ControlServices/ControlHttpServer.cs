@@ -1,7 +1,6 @@
 ﻿using System.Net;
 using DotNetCampus.Logging;
 using DotNetCampus.SlingNetwork.Cli;
-using DotNetCampus.SlingNetwork.ServerSide.UdpServices;
 using DotNetCampus.SlingNetwork.Transports;
 using TouchSocket.Core;
 using TouchSocket.Http;
@@ -11,7 +10,7 @@ using HttpClient = System.Net.Http.HttpClient;
 
 namespace DotNetCampus.SlingNetwork.ServerSide.ControlServices;
 
-public class ControlHttpServer(ServerContext context, ServeHandler serverInfo, UdpPacketServer udpPacketServer)
+public class ControlHttpServer(ServerContext context, ServeHandler serverInfo)
 {
     public async Task Listen()
     {

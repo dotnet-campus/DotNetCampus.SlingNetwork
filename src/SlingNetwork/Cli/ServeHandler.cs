@@ -53,7 +53,7 @@ public class ServeHandler : ICommandHandler<AppContext>
 
         // 初始化服务。
         var punchService = new UdpPacketServer(serverContext);
-        var apiHttpService = new ControlHttpServer(serverContext, this, punchService);
+        var apiHttpService = new ControlHttpServer(serverContext, this);
 
         // API 服务（http）。
         var signalingServiceTask = apiHttpService.Listen();
