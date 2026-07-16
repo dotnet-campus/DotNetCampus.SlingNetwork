@@ -1,6 +1,7 @@
 ﻿using System.Net;
 using DotNetCampus.Logging;
 using DotNetCampus.SlingNetwork.Cli;
+using DotNetCampus.SlingNetwork.Transports;
 using TouchSocket.Core;
 using TouchSocket.Http;
 using TouchSocket.Rpc;
@@ -44,7 +45,7 @@ public class ControlHttpServer(ServerContext context, ServeHandler serverInfo)
                     {
                         converter.AddSystemTextJsonSerializerFormatter(serializerOptions =>
                         {
-                            serializerOptions.TypeInfoResolverChain.Insert(0, AppJsonSerializerContext.Default);
+                            serializerOptions.TypeInfoResolverChain.Insert(0, TransportJsonContext.Default);
                         });
                     });
                 });

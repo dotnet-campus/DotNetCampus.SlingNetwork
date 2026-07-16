@@ -1,5 +1,4 @@
-﻿using System.Text.Json.Serialization;
-using DotNetCampus.SlingNetwork.Cli;
+﻿using DotNetCampus.SlingNetwork.Cli;
 using DotNetCampus.SlingNetwork.Transports.Models;
 using TouchSocket.Http;
 using TouchSocket.Rpc;
@@ -7,10 +6,9 @@ using TouchSocket.WebApi;
 
 namespace DotNetCampus.SlingNetwork.ServerSide.ControlServices;
 
-[Router("/api/v1/nat-test")]
 public class NatTestWebApi(ServeHandler serverInfo) : SingletonRpcServer
 {
-    [Router("new")]
+    [Router("/api/v1/nat-test/new")]
     [WebApi(Method = HttpMethodType.Post)]
     public NatTestSession NatTest(IWebApiCallContext context)
     {
@@ -18,8 +16,9 @@ public class NatTestWebApi(ServeHandler serverInfo) : SingletonRpcServer
 
         if (serverInfo.PartnerControlUrls is null or [])
         {
-            response.SetStatus(404, "Created");
+            response.SetStatus(404, "Not Supported");
             response.SetContent("This control server does not support NAT test.");
+            response.AnswerAsync();
             return null!;
         }
 
@@ -34,7 +33,7 @@ public class NatTestWebApi(ServeHandler serverInfo) : SingletonRpcServer
         };
     }
 
-    [Router("forward")]
+    [Router("/api/v1/nat-test/forward")]
     [WebApi(Method = HttpMethodType.Post)]
     public NatTestSession Forward(IWebApiCallContext context, NatTestForwardRequest request)
     {

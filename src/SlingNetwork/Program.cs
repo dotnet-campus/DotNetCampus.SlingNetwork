@@ -1,13 +1,10 @@
-using System.Text.Encodings.Web;
-using System.Text.Json;
-using System.Text.Json.Serialization;
 using DotNetCampus.Cli;
 using DotNetCampus.Cli.Exceptions;
 using DotNetCampus.Logging;
 using DotNetCampus.Logging.Writers;
 using DotNetCampus.SlingNetwork.Cli;
 using DotNetCampus.SlingNetwork.Localizations;
-using DotNetCampus.SlingNetwork.ServerSide.ControlServices;
+using DotNetCampus.SlingNetwork.Transports;
 
 namespace DotNetCampus.SlingNetwork;
 
@@ -52,7 +49,7 @@ public record AppContext
 {
     public required CompositeLogger Logger { get; init; }
 
-    public required AppJsonSerializerContext JsonSerializer { get; init; }
+    public required TransportJsonContext JsonSerializer { get; init; }
 
     public required HttpClient HttpClient { get; init; }
 
@@ -67,25 +64,11 @@ public record AppContext
         return new AppContext
         {
             Logger = logger,
-            JsonSerializer = AppJsonSerializerContext.Default,
+            JsonSerializer = TransportJsonContext.Default,
             HttpClient = new HttpClient
             {
                 Timeout = TimeSpan.FromSeconds(5),
             },
         };
-    }
-}
-
-[JsonSerializable(typeof(PunchInfo))]
-[JsonSourceGenerationOptions(
-    PropertyNamingPolicy = JsonKnownNamingPolicy.CamelCase)]
-public partial class AppJsonSerializerContext : JsonSerializerContext
-{
-    static AppJsonSerializerContext()
-    {
-        Default = new AppJsonSerializerContext(new JsonSerializerOptions(s_defaultOptions)
-        {
-            Encoder = JavaScriptEncoder.UnsafeRelaxedJsonEscaping,
-        });
     }
 }

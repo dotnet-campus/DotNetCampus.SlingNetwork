@@ -3,9 +3,9 @@ using TouchSocket.WebApi;
 
 namespace DotNetCampus.SlingNetwork.ServerSide.ControlServices;
 
-[Router("/api/v1/punch")]
 public class PunchWebApi(ServerContext serverContext) : SingletonRpcServer
 {
+    [Router("/api/v1/punch")]
     [WebApi(Method = HttpMethodType.Get)]
     public PunchInfo Punch(IWebApiCallContext context, string publicKey)
     {

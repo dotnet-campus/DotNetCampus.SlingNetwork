@@ -5,9 +5,9 @@ using TouchSocket.WebApi;
 
 namespace DotNetCampus.SlingNetwork.ServerSide.ControlServices;
 
-[Router("ip")]
 public class IPWebApi : SingletonRpcServer
 {
+    [Router("ip")]
     [WebApi(Method = HttpMethodType.Get)]
     public string IP(IWebApiCallContext context)
     {
