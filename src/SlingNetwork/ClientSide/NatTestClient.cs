@@ -32,7 +32,7 @@ public class NatTestClient(AppContext app)
 
         var server1Addresses = await LookupIpAddressesAsync([new Uri(controlUrl).Host]);
         var server1Address = server1Addresses.FirstOrDefault(x => x.IP.AddressFamily == addressFamily).IP;
-        var server2Addresses = await LookupIpAddressesAsync(natTestSession.AlternateServerList ?? []);
+        var server2Addresses = await LookupIpAddressesAsync(natTestSession.AlternateServerList?.Select(x => new Uri(x).Host).ToList() ?? []);
         var server2HostIP = server2Addresses.FirstOrDefault(x => x.IP.AddressFamily == addressFamily);
 
         if (server1Address is null)

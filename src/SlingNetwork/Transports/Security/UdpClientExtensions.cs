@@ -26,9 +26,12 @@ internal static class UdpClientExtensions
             {
                 continue;
             }
+            catch (OperationCanceledException)
+            {
+                continue;
+            }
 
             Memory<byte> receivedPacketMemory = result.Buffer;
-            var remote = result.RemoteEndPoint;
 
             var receivedPacketValue = UdpHeaderedKeyValuePacket.TryParse(receivedPacketMemory.Span);
             if (receivedPacketValue is not { } receivedPacket)
