@@ -50,8 +50,8 @@ internal static class UdpPacketCrypto
         Span<byte> plain = stackalloc byte[packet.Length - HeaderSize];
         var cipher = packet[HeaderSize..];
         plain.Clear();
-        packet[HeaderSize] = (byte)(payloadLength >> 8);
-        packet[HeaderSize + 1] = (byte)payloadLength;
+        plain[0] = (byte)(payloadLength >> 8);
+        plain[1] = (byte)payloadLength;
         RandomNumberGenerator.Fill(nonce);
         Utf8.GetBytes(plainText, plain[PayloadLengthSize..]);
 

@@ -67,7 +67,7 @@ public record AppContext
             JsonSerializer = TransportJsonContext.Default,
             HttpClient = new HttpClient
             {
-                Timeout = TimeSpan.FromSeconds(5),
+                Timeout = TimeSpan.FromSeconds(10),
             },
         };
     }

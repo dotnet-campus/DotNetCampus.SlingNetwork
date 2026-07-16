@@ -30,11 +30,13 @@ public readonly record struct UdpHeaderedKeyValuePacket
 
         while (separatorIndex >= 0)
         {
-            var nextSeparatorIndex = plainText.IndexOf('\n');
-            var line = nextSeparatorIndex >= 0
+            var nextSeparatorIndex = plainText[(separatorIndex + 1)..].IndexOf('\n') + separatorIndex + 1;
+            var line = nextSeparatorIndex > separatorIndex
                 ? plainText[(separatorIndex + 1)..nextSeparatorIndex]
                 : plainText[(separatorIndex + 1)..];
-            separatorIndex = nextSeparatorIndex;
+            separatorIndex = nextSeparatorIndex > separatorIndex
+                ? nextSeparatorIndex
+                : -1;
 
             var equalsIndex = line.IndexOf('=');
             if (equalsIndex < 0)

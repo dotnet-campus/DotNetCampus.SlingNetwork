@@ -47,12 +47,18 @@ public static class NatTestServer
             return;
         }
 
-        await httpClient.PostAsJsonAsync($"https://{alternateServer}/api/v1/nat-test/forward", new NatTestForwardRequest
+        var httpResponse = await httpClient.PostAsJsonAsync($"https://{alternateServer}/api/v1/nat-test/forward", new NatTestForwardRequest
         {
             SessionId = sessionId,
             Address = remoteEndPoint.Address.ToString(),
             Port = remoteEndPoint.Port,
         }, TransportJsonContext.Default.NatTestForwardRequest, cancellationToken: cancellationToken);
+        if (!httpResponse.IsSuccessStatusCode)
+        {
+            // 备用服务器未按预期工作，放弃本次 NAT 探测。
+            logger.Warn("Partner control server does not work correctly. NAT test is aborted.");
+            return;
+        }
 
         using var packetMemory = new NatTestUdpPacket
         {

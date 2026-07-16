@@ -30,6 +30,7 @@ public class NatTestWebApi(ServeHandler serverInfo, HttpClient httpClient, ILogg
         Span<int> portPair = stackalloc int[2];
         serverInfo.UdpPortRange.RandomTo(portPair);
 
+        logger.Info($"[NAT-TEST][{sessionId}] HTTP from {context.GetClientIP()}");
         NatTestServer.ServerFilteringPhaseAsync(httpClient, logger, sessionId, portPair[0], portPair[1], CancellationToken.None)
             .LogAsyncException(logger);
 
@@ -49,6 +50,7 @@ public class NatTestWebApi(ServeHandler serverInfo, HttpClient httpClient, ILogg
         Span<int> portPair = stackalloc int[2];
         serverInfo.UdpPortRange.RandomTo(portPair);
 
+        logger.Info($"[NAT-TEST][{request.SessionId}] HTTP forwarded from {context.GetClientIP()}");
         NatTestServer.ServerFilteringAndMappingPhaseAsync(logger,
                 request.SessionId, request.Address, request.Port, portPair[0], portPair[1],
                 CancellationToken.None)

@@ -66,9 +66,7 @@ public record NatTestUdpPacket
         var clientPublicIPEndPoint = packet.Payload.GetValueOrDefault(nameof(ClientPublicIPEndPoint));
         var alternateServerPort1String = packet.Payload.GetValueOrDefault(nameof(AlternateServerPort1));
         var alternateServerPort2String = packet.Payload.GetValueOrDefault(nameof(AlternateServerPort2));
-        if (sessionId is null
-            || !int.TryParse(alternateServerPort1String, NumberStyles.Integer, CultureInfo.InvariantCulture, out var alternateServerPort1)
-            || !int.TryParse(alternateServerPort2String, NumberStyles.Integer, CultureInfo.InvariantCulture, out var alternateServerPort2))
+        if (sessionId is null)
         {
             return null;
         }
@@ -78,8 +76,12 @@ public record NatTestUdpPacket
             SessionId = sessionId,
             AlternateServer = alternateServer,
             ClientPublicIPEndPoint = clientPublicIPEndPoint,
-            AlternateServerPort1 = alternateServerPort1,
-            AlternateServerPort2 = alternateServerPort2,
+            AlternateServerPort1 = int.TryParse(alternateServerPort1String, NumberStyles.Integer, CultureInfo.InvariantCulture, out var alternateServerPort1)
+                ? alternateServerPort1
+                : 0,
+            AlternateServerPort2 = int.TryParse(alternateServerPort2String, NumberStyles.Integer, CultureInfo.InvariantCulture, out var alternateServerPort2)
+                ? alternateServerPort2
+                : 0,
         };
     }
 }
