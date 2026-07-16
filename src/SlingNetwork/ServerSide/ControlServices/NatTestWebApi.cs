@@ -16,7 +16,9 @@ public class NatTestWebApi(ServeHandler serverInfo, HttpClient httpClient, ILogg
 {
     [Router("/api/v1/nat-test/new")]
     [WebApi(Method = HttpMethodType.Post)]
-    public NatTestSession NatTest(IWebApiCallContext context)
+    public NatTestSession NatTest(IWebApiCallContext context,
+        [FromQuery(Name = "repeat")] int packetRepeatCount = 1,
+        [FromQuery(Name = "delay")] int packetRepeatDelayMilliseconds = 500)
     {
         var response = context.HttpContext.Response;
 
@@ -33,7 +35,10 @@ public class NatTestWebApi(ServeHandler serverInfo, HttpClient httpClient, ILogg
         serverInfo.UdpPortRange.RandomTo(portPair);
 
         logger.Info($"[NAT-TEST][{sessionId}] HTTP from {context.GetClientIP()}");
-        NatTestServer.ServerFilteringPhaseAsync(httpClient, logger, sessionId, portPair[0], portPair[1], CancellationToken.None)
+        NatTestServer.ServerFilteringPhaseAsync(httpClient, logger,
+                sessionId, portPair[0], portPair[1],
+                packetRepeatCount, packetRepeatDelayMilliseconds,
+                CancellationToken.None)
             .LogAsyncException(logger);
 
         return new NatTestSession
@@ -47,7 +52,9 @@ public class NatTestWebApi(ServeHandler serverInfo, HttpClient httpClient, ILogg
 
     [Router("/api/v1/nat-test/forward")]
     [WebApi(Method = HttpMethodType.Post)]
-    public async Task<NatTestSession> Forward(IWebApiCallContext context /*, NatTestForwardRequest request*/)
+    public async Task<NatTestSession> Forward(IWebApiCallContext context /*, NatTestForwardRequest request*/,
+        [FromQuery(Name = "repeat")] int packetRepeatCount = 1,
+        [FromQuery(Name = "delay")] int packetRepeatDelayMilliseconds = 500)
     {
         var response = await context.HttpContext.Request.GetBodyAsync();
         var request = JsonSerializer.Deserialize(response, TransportJsonContext.Default.NatTestForwardRequest)!;
@@ -58,6 +65,7 @@ public class NatTestWebApi(ServeHandler serverInfo, HttpClient httpClient, ILogg
         logger.Info($"[NAT-TEST][{request.SessionId}] HTTP forwarded from {context.GetClientIP()}");
         NatTestServer.ServerFilteringAndMappingPhaseAsync(logger,
                 request.SessionId, request.Address, request.Port, portPair[0], portPair[1],
+                packetRepeatCount, packetRepeatDelayMilliseconds,
                 CancellationToken.None)
             .LogAsyncException(logger);
 

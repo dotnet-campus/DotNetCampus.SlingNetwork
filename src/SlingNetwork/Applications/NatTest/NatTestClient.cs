@@ -8,7 +8,7 @@ using DotNetCampus.SlingNetwork.Transports.Models;
 
 namespace DotNetCampus.SlingNetwork.Applications.NatTest;
 
-public class NatTestClient(AppContext app)
+public class NatTestClient(AppContext app, int packetRepeatCount, int packetRepeatDelayMilliseconds)
 {
     public async Task<Result<NatTestClientSession>> CreateNewAsync(string controlUrl, IpProtocol ipProtocol = IpProtocol.IPv4)
     {
@@ -19,7 +19,9 @@ public class NatTestClient(AppContext app)
             _ => throw new InvalidEnumArgumentException($"Unknown {nameof(IpProtocol)}: {ipProtocol}", (int)ipProtocol, typeof(IpProtocol)),
         };
 
-        var responseMessage = await app.HttpClient.PostAsync($"{controlUrl}/api/v1/nat-test/new", null);
+        var responseMessage = await app.HttpClient.PostAsync(
+            $"{controlUrl}/api/v1/nat-test/new?repeat={packetRepeatCount}&delay={packetRepeatDelayMilliseconds}",
+            null);
         if (!responseMessage.IsSuccessStatusCode)
         {
             return Result.Failed($"Control server {controlUrl} is not available.");
@@ -53,6 +55,8 @@ public class NatTestClient(AppContext app)
             Server2Url = server2HostIP.Url,
             Server2Address = server2HostIP.IP,
             Logger = app.Logger,
+            PacketRepeatCount = packetRepeatCount,
+            PacketRepeatDelayMilliseconds = packetRepeatDelayMilliseconds,
         });
     }
 

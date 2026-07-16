@@ -12,11 +12,17 @@ public class NatTestHandler : ICommandHandler<AppContext>
     [Option('c', "control-url", ValueName = "url", Description = "Command.NatTestHandler.ControlUrl")]
     public required string ControlUrl { get; init; }
 
+    [Option('r', "repeat-count", ValueName = "number", Description = "Command.NatTestHandler.PacketRepeatCount")]
+    public int? PacketRepeatCount { get; init; }
+
+    [Option('d', "repeat-delay", ValueName = "milliseconds", Description = "Command.NatTestHandler.PacketRepeatDelay")]
+    public int? PacketRepeatDelay { get; init; }
+
     public async Task<int> RunAsync(AppContext app)
     {
         app.Logger.Info($"Requesting a NAT test to {ControlUrl}...");
 
-        var client = new NatTestClient(app);
+        var client = new NatTestClient(app, PacketRepeatCount ?? 1, PacketRepeatDelay ?? 500);
         var sessionResult = await client.CreateNewAsync(ControlUrl, IpProtocol.IPv4);
         if (!sessionResult.IsSuccess)
         {
