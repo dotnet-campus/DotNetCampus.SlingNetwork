@@ -2,6 +2,7 @@
 using DotNetCampus.Cli.Compiler;
 using DotNetCampus.Logging;
 using DotNetCampus.SlingNetwork.Applications.NatTest;
+using DotNetCampus.SlingNetwork.Localizations;
 using DotNetCampus.SlingNetwork.Transports.Models;
 
 namespace DotNetCampus.SlingNetwork.Cli;
@@ -68,23 +69,23 @@ public class NatTestHandler : ICommandHandler<AppContext>
             var report = phase.Report;
             var result = Verbose
                 ? $"""
-                NAT test result:
-                - Success: {report.Success}
-                - SessionId: {report.SessionId}
-                - Mapping: {report.Mapping}
-                - Filtering: {report.Filtering}
-                - LegacyNatType (RFC 3489, obsolete): {report.LegacyNatType}
-                - ClientLocalEndPoint: {report.ClientLocalEndPoint}
-                - ClientPublicEndPoint1: {report.ClientPublicEndPoint}
-                - ClientPublicEndPoint2: {report.ClientPublicEndPointToAlternateServerPort1}
-                - ClientPublicEndPoint3: {report.ClientPublicEndPointToAlternateServerPort2?.ToString() ?? "NotTested"}
-                - IsPublicEndPoint: {report.IsPublicEndPoint}
+                {LocalizedText.Current.NatTest.Report.Title}
+                - {LocalizedText.Current.NatTest.Report.Success}: {LocalizedText.Current[$"Values.Boolean.{report.Success}"]}
+                - {LocalizedText.Current.NatTest.Report.SessionId}: {report.SessionId}
+                - {LocalizedText.Current.NatTest.Report.Mapping}: {LocalizedText.Current[$"Enums.{nameof(NatMappingBehavior)}.{report.Mapping}"]}
+                - {LocalizedText.Current.NatTest.Report.Filtering}: {LocalizedText.Current[$"Enums.{nameof(NetworkPacketFilteringBehavior)}.{report.Filtering}"]}
+                - {LocalizedText.Current.NatTest.Report.LegacyNatType}: {LocalizedText.Current[$"Enums.{nameof(Rfc3489NatType)}.{report.LegacyNatType}"]}
+                - {LocalizedText.Current.NatTest.Report.ClientLocalEndPoint}: {report.ClientLocalEndPoint}
+                - {LocalizedText.Current.NatTest.Report.ClientPublicEndPoint1}: {report.ClientPublicEndPoint}
+                - {LocalizedText.Current.NatTest.Report.ClientPublicEndPoint2}: {report.ClientPublicEndPointToAlternateServerPort1}
+                - {LocalizedText.Current.NatTest.Report.ClientPublicEndPoint3}: {report.ClientPublicEndPointToAlternateServerPort2?.ToString() ?? LocalizedText.Current.NatTest.Report.NotTested.ToString()}
+                - {LocalizedText.Current.NatTest.Report.IsPublicEndPoint}: {LocalizedText.Current[$"Values.Boolean.{report.IsPublicEndPoint}"]}
                 """
                 : $"""
-                NAT test result:
-                - Mapping: {report.Mapping}
-                - Filtering: {report.Filtering}
-                - IsPublicEndPoint: {report.IsPublicEndPoint}
+                {LocalizedText.Current.NatTest.Report.Title}
+                - {LocalizedText.Current.NatTest.Report.Mapping}: {LocalizedText.Current[$"Enums.{nameof(NatMappingBehavior)}.{report.Mapping}"]}
+                - {LocalizedText.Current.NatTest.Report.Filtering}: {LocalizedText.Current[$"Enums.{nameof(NetworkPacketFilteringBehavior)}.{report.Filtering}"]}
+                - {LocalizedText.Current.NatTest.Report.IsPublicEndPoint}: {LocalizedText.Current[$"Values.Boolean.{report.IsPublicEndPoint}"]}
                 """;
             app.Logger.Info(result);
             return 0;
