@@ -9,7 +9,8 @@ namespace DotNetCampus.SlingNetwork.Transports;
 [JsonSerializable(typeof(NatTestSession))]
 [JsonSerializable(typeof(PunchInfo))]
 [JsonSourceGenerationOptions(
-    PropertyNamingPolicy = JsonKnownNamingPolicy.CamelCase)]
+    PropertyNamingPolicy = JsonKnownNamingPolicy.CamelCase,
+    PropertyNameCaseInsensitive = true)]
 public partial class TransportJsonContext : JsonSerializerContext
 {
     static TransportJsonContext()
