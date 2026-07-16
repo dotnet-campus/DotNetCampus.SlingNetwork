@@ -73,6 +73,7 @@ public class NatTestHandler : ICommandHandler<AppContext>
                 - SessionId: {report.SessionId}
                 - Mapping: {report.Mapping}
                 - Filtering: {report.Filtering}
+                - LegacyNatType (RFC 3489, obsolete): {report.LegacyNatType}
                 - ClientLocalEndPoint: {report.ClientLocalEndPoint}
                 - ClientPublicEndPoint1: {report.ClientPublicEndPoint}
                 - ClientPublicEndPoint2: {report.ClientPublicEndPointToAlternateServerPort1}

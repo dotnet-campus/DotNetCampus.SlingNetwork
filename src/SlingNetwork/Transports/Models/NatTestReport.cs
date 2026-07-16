@@ -14,6 +14,19 @@ public record NatTestReport
     public required IPEndPoint ClientPublicEndPoint { get; init; }
     public required IPEndPoint ClientPublicEndPointToAlternateServerPort1 { get; init; }
     public required IPEndPoint? ClientPublicEndPointToAlternateServerPort2 { get; init; }
+    public Rfc3489NatType LegacyNatType => (Mapping, Filtering) switch
+    {
+        (NatMappingBehavior.EndpointIndependent, NetworkPacketFilteringBehavior.EndpointIndependent)
+            => Rfc3489NatType.FullCone,
+        (NatMappingBehavior.EndpointIndependent, NetworkPacketFilteringBehavior.AddressDependent)
+            => Rfc3489NatType.RestrictedCone,
+        (NatMappingBehavior.EndpointIndependent, NetworkPacketFilteringBehavior.AddressAndPortDependent)
+            => Rfc3489NatType.PortRestrictedCone,
+        (NatMappingBehavior.AddressAndPortDependent, NetworkPacketFilteringBehavior.AddressAndPortDependent)
+            => Rfc3489NatType.Symmetric,
+        _ => Rfc3489NatType.NotRepresentable,
+    };
+
     public bool IsPublicEndPoint => Equals(
         ClientLocalEndPoint.Address.Normalize(),
         ClientPublicEndPoint.Address.Normalize());
