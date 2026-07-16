@@ -30,6 +30,8 @@ public class ControlHttpServer(ServerContext context, ServeHandler serverInfo)
                 a.RegisterSingleton<ServeHandler>(_ => serverInfo);
                 a.AddRpcStore(store =>
                 {
+                    store.RegisterServer<IPWebApi>();
+                    store.RegisterServer<NatTestWebApi>();
                     store.RegisterServer<PunchWebApi>();
                 });
             })
