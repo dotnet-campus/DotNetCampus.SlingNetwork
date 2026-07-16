@@ -5,7 +5,7 @@ using DotNetCampus.SlingNetwork.Localizations;
 using DotNetCampus.SlingNetwork.ServerSide;
 using DotNetCampus.SlingNetwork.ServerSide.ControlServices;
 using DotNetCampus.SlingNetwork.ServerSide.Models;
-using DotNetCampus.SlingNetwork.ServerSide.PunchServices;
+using DotNetCampus.SlingNetwork.ServerSide.UdpServices;
 
 namespace DotNetCampus.SlingNetwork.Cli;
 
@@ -52,8 +52,8 @@ public class ServeHandler : ICommandHandler<AppContext>
         };
 
         // 初始化服务。
-        var apiHttpService = new ControlHttpServer(serverContext, this);
-        var punchService = new PunchServer(serverContext);
+        var punchService = new UdpPacketServer(serverContext);
+        var apiHttpService = new ControlHttpServer(serverContext, this, punchService);
 
         // API 服务（http）。
         var signalingServiceTask = apiHttpService.Listen();

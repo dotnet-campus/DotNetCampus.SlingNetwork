@@ -6,9 +6,9 @@ using System.Text;
 using DotNetCampus.Logging;
 using DotNetCampus.SlingNetwork.Transports.Security;
 
-namespace DotNetCampus.SlingNetwork.ServerSide.PunchServices;
+namespace DotNetCampus.SlingNetwork.ServerSide.UdpServices;
 
-public class PunchServer(ServerContext context)
+public class UdpPacketServer(ServerContext context)
 {
     private readonly ConcurrentDictionary<string, Dictionary<string, PeerPunchInfo>> _punchingPeers = [];
 

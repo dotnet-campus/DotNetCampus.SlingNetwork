@@ -1,15 +1,17 @@
 ﻿using System.Net;
 using DotNetCampus.Logging;
 using DotNetCampus.SlingNetwork.Cli;
+using DotNetCampus.SlingNetwork.ServerSide.UdpServices;
 using DotNetCampus.SlingNetwork.Transports;
 using TouchSocket.Core;
 using TouchSocket.Http;
 using TouchSocket.Rpc;
 using TouchSocket.Sockets;
+using HttpClient = System.Net.Http.HttpClient;
 
 namespace DotNetCampus.SlingNetwork.ServerSide.ControlServices;
 
-public class ControlHttpServer(ServerContext context, ServeHandler serverInfo)
+public class ControlHttpServer(ServerContext context, ServeHandler serverInfo, UdpPacketServer udpPacketServer)
 {
     public async Task Listen()
     {
@@ -28,6 +30,7 @@ public class ControlHttpServer(ServerContext context, ServeHandler serverInfo)
                 // a.AddConsoleLogger();
                 a.RegisterSingleton<ServerContext>(_ => context);
                 a.RegisterSingleton<ILogger>(_ => context.App.Logger);
+                a.RegisterSingleton<HttpClient>(_ => context.App.HttpClient);
                 a.RegisterSingleton<ServeHandler>(_ => serverInfo);
                 a.AddRpcStore(store =>
                 {

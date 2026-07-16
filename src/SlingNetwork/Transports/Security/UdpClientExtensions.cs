@@ -1,18 +1,19 @@
+using System.Net;
 using System.Net.Sockets;
 
 namespace DotNetCampus.SlingNetwork.Transports.Security;
 
 internal static class UdpClientExtensions
 {
-    public static async Task<UdpHeaderedKeyValuePacket?[]> ReceiveUtilAllMatches(this UdpClient udpClient,
+    public static async Task<(IPEndPoint RemoteEndPoint, UdpHeaderedKeyValuePacket UdpPacket)?[]> ReceiveUtilAllMatches(this UdpClient udpClient,
         TimeSpan timeout,
         CancellationToken cancellationToken,
-        params Func<UdpHeaderedKeyValuePacket, bool>[] udpPacketMatchers)
+        params Func<IPEndPoint, UdpHeaderedKeyValuePacket, bool>[] udpPacketMatchers)
     {
         var selfCts = new CancellationTokenSource();
         var timeoutCts = new CancellationTokenSource(timeout);
         var linkedCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken, selfCts.Token, timeoutCts.Token);
-        var resultPackets = new UdpHeaderedKeyValuePacket?[udpPacketMatchers.Length];
+        var resultPackets = new (IPEndPoint RemoteEndPoint, UdpHeaderedKeyValuePacket UdpPacket)?[udpPacketMatchers.Length];
 
         while (!linkedCts.Token.IsCancellationRequested)
         {
@@ -31,6 +32,7 @@ internal static class UdpClientExtensions
                 continue;
             }
 
+            var remoteEndPoint = result.RemoteEndPoint;
             Memory<byte> receivedPacketMemory = result.Buffer;
 
             var receivedPacketValue = UdpHeaderedKeyValuePacket.TryParse(receivedPacketMemory.Span);
@@ -42,9 +44,9 @@ internal static class UdpClientExtensions
             for (var i = 0; i < udpPacketMatchers.Length; i++)
             {
                 var matcher = udpPacketMatchers[i];
-                if (matcher(receivedPacket))
+                if (matcher(remoteEndPoint, receivedPacket))
                 {
-                    resultPackets[i] = receivedPacket;
+                    resultPackets[i] = (remoteEndPoint, receivedPacket);
                 }
             }
 

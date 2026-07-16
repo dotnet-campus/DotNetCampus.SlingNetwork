@@ -4,7 +4,7 @@ using System.Net.Sockets;
 using DotNetCampus.Cli;
 using DotNetCampus.Cli.Compiler;
 using DotNetCampus.Logging;
-using DotNetCampus.SlingNetwork.ServerSide.PunchServices;
+using DotNetCampus.SlingNetwork.ServerSide.UdpServices;
 using DotNetCampus.SlingNetwork.Transports.Security;
 
 namespace DotNetCampus.SlingNetwork.Cli;

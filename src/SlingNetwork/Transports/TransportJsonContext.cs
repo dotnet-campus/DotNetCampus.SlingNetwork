@@ -6,6 +6,7 @@ using DotNetCampus.SlingNetwork.Transports.Models;
 
 namespace DotNetCampus.SlingNetwork.Transports;
 
+[JsonSerializable(typeof(NatTestForwardRequest))]
 [JsonSerializable(typeof(NatTestSession))]
 [JsonSerializable(typeof(PunchInfo))]
 [JsonSourceGenerationOptions(

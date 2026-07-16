@@ -1,7 +1,7 @@
 ﻿using DotNetCampus.Cli;
 using DotNetCampus.Cli.Compiler;
 using DotNetCampus.Logging;
-using DotNetCampus.SlingNetwork.ClientSide;
+using DotNetCampus.SlingNetwork.Applications.NatTest;
 using DotNetCampus.SlingNetwork.Transports.Models;
 
 namespace DotNetCampus.SlingNetwork.Cli;

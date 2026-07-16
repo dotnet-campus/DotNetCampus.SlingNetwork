@@ -1,12 +1,16 @@
-﻿using DotNetCampus.SlingNetwork.Cli;
+﻿using DotNetCampus.Logging;
+using DotNetCampus.SlingNetwork.Applications.NatTest;
+using DotNetCampus.SlingNetwork.Cli;
+using DotNetCampus.SlingNetwork.Framework;
 using DotNetCampus.SlingNetwork.Transports.Models;
 using TouchSocket.Http;
 using TouchSocket.Rpc;
 using TouchSocket.WebApi;
+using HttpClient = System.Net.Http.HttpClient;
 
 namespace DotNetCampus.SlingNetwork.ServerSide.ControlServices;
 
-public class NatTestWebApi(ServeHandler serverInfo) : SingletonRpcServer
+public class NatTestWebApi(ServeHandler serverInfo, HttpClient httpClient, ILogger logger) : SingletonRpcServer
 {
     [Router("/api/v1/nat-test/new")]
     [WebApi(Method = HttpMethodType.Post)]
@@ -22,11 +26,16 @@ public class NatTestWebApi(ServeHandler serverInfo) : SingletonRpcServer
             return null!;
         }
 
+        var sessionId = Guid.NewGuid().ToString("D");
         Span<int> portPair = stackalloc int[2];
         serverInfo.UdpPortRange.RandomTo(portPair);
+
+        NatTestServer.ServerFilteringPhaseAsync(httpClient, logger, sessionId, portPair[0], portPair[1], CancellationToken.None)
+            .LogAsyncException(logger);
+
         return new NatTestSession
         {
-            SessionId = Guid.NewGuid().ToString("D"),
+            SessionId = sessionId,
             Port1 = portPair[0],
             Port2 = portPair[1],
             AlternateServerList = serverInfo.PartnerControlUrls,
@@ -39,6 +48,12 @@ public class NatTestWebApi(ServeHandler serverInfo) : SingletonRpcServer
     {
         Span<int> portPair = stackalloc int[2];
         serverInfo.UdpPortRange.RandomTo(portPair);
+
+        NatTestServer.ServerFilteringAndMappingPhaseAsync(logger,
+                request.SessionId, request.Address, request.Port, portPair[0], portPair[1],
+                CancellationToken.None)
+            .LogAsyncException(logger);
+
         return new NatTestSession
         {
             SessionId = request.SessionId,

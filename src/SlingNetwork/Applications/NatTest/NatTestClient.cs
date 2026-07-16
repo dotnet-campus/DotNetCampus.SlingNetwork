@@ -6,7 +6,7 @@ using DotNetCampus.SlingNetwork.Framework;
 using DotNetCampus.SlingNetwork.Transports;
 using DotNetCampus.SlingNetwork.Transports.Models;
 
-namespace DotNetCampus.SlingNetwork.ClientSide;
+namespace DotNetCampus.SlingNetwork.Applications.NatTest;
 
 public class NatTestClient(AppContext app)
 {

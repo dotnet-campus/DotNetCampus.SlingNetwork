@@ -5,7 +5,7 @@ using DotNetCampus.SlingNetwork.Transports;
 using DotNetCampus.SlingNetwork.Transports.Models;
 using DotNetCampus.SlingNetwork.Transports.Security;
 
-namespace DotNetCampus.SlingNetwork.ClientSide;
+namespace DotNetCampus.SlingNetwork.Applications.NatTest;
 
 public class NatTestClientSession
 {
@@ -63,9 +63,9 @@ public record NatTestClientSessionPhase
         await UdpClient.SendAsync(packetMemory.Memory[..packetLength], new IPEndPoint(Session.Server1Address, Session.Server1Port1), cts.Token);
 
         var receivedPackets = await UdpClient.ReceiveUtilAllMatches(TimeSpan.FromSeconds(10), cts.Token,
-            p => NatTestUdpPacketHeader.ParseFromHeader(p.Header) is NatTestUdpPacketHeader.Phase1RMainServerReply,
-            p => NatTestUdpPacketHeader.ParseFromHeader(p.Header) is NatTestUdpPacketHeader.Phase11MainServerSend,
-            p => NatTestUdpPacketHeader.ParseFromHeader(p.Header) is NatTestUdpPacketHeader.Phase12AlternateServerSend);
+            (_, p) => NatTestUdpPacketHeader.ParseFromHeader(p.Header) is NatTestUdpPacketHeader.Phase1RMainServerReply,
+            (_, p) => NatTestUdpPacketHeader.ParseFromHeader(p.Header) is NatTestUdpPacketHeader.Phase11MainServerSend,
+            (_, p) => NatTestUdpPacketHeader.ParseFromHeader(p.Header) is NatTestUdpPacketHeader.Phase12AlternateServerSend);
 
         NetworkPacketFilteringBehavior? filtering = (receivedPackets[0], receivedPackets[1], receivedPackets[2]) switch
         {
@@ -83,7 +83,7 @@ public record NatTestClientSessionPhase
             };
         }
 
-        var natTestUdpPacket = NatTestUdpPacket.TryParse(receivedPackets[0]!.Value)!;
+        var natTestUdpPacket = NatTestUdpPacket.TryParse(receivedPackets[0]!.Value.UdpPacket)!;
         return this with
         {
             Phase = NatTestPhase.Mapping,
@@ -115,8 +115,8 @@ public record NatTestClientSessionPhase
         await UdpClient.SendAsync(packetMemory.Memory[..packetLength], new IPEndPoint(Session.Server2Address, Report.AlternateServerPort1), cts.Token);
 
         var receivedPackets = await UdpClient.ReceiveUtilAllMatches(TimeSpan.FromSeconds(10), cts.Token,
-            p => NatTestUdpPacketHeader.ParseFromHeader(p.Header) is NatTestUdpPacketHeader.Phase2RAlternateServerSend);
-        var natTestPacket = receivedPackets.Select(x => x is { } p ? NatTestUdpPacket.TryParse(p) : null).First();
+            (_, p) => NatTestUdpPacketHeader.ParseFromHeader(p.Header) is NatTestUdpPacketHeader.Phase2RAlternateServerSend);
+        var natTestPacket = receivedPackets.Select(x => x is { } p ? NatTestUdpPacket.TryParse(p.UdpPacket) : null).First();
 
         if (natTestPacket is null)
         {
@@ -127,7 +127,7 @@ public record NatTestClientSessionPhase
             };
         }
 
-        var clientPublicEndPointToAlternateServer = IPEndPoint.Parse(NatTestUdpPacket.TryParse(receivedPackets[0]!.Value)!.ClientPublicIPEndPoint!);
+        var clientPublicEndPointToAlternateServer = IPEndPoint.Parse(NatTestUdpPacket.TryParse(receivedPackets[0]!.Value.UdpPacket)!.ClientPublicIPEndPoint!);
         // 相等说明映射为「端点无关」，否则进行第 3 轮测试
         if (Equals(Report.ClientPublicEndPoint, clientPublicEndPointToAlternateServer))
         {
@@ -168,8 +168,8 @@ public record NatTestClientSessionPhase
         await UdpClient.SendAsync(packetMemory.Memory[..packetLength], new IPEndPoint(Session.Server2Address, Report.AlternateServerPort2), cts.Token);
 
         var receivedPackets = await UdpClient.ReceiveUtilAllMatches(TimeSpan.FromSeconds(10), cts.Token,
-            p => NatTestUdpPacketHeader.ParseFromHeader(p.Header) is NatTestUdpPacketHeader.Phase3RAlternateServerSend);
-        var natTestPacket = receivedPackets.Select(x => x is { } p ? NatTestUdpPacket.TryParse(p) : null).First();
+            (_, p) => NatTestUdpPacketHeader.ParseFromHeader(p.Header) is NatTestUdpPacketHeader.Phase3RAlternateServerSend);
+        var natTestPacket = receivedPackets.Select(x => x is { } p ? NatTestUdpPacket.TryParse(p.UdpPacket) : null).First();
 
         if (natTestPacket is null)
         {
@@ -180,7 +180,7 @@ public record NatTestClientSessionPhase
             };
         }
 
-        var clientPublicEndPointToAlternateServer = IPEndPoint.Parse(NatTestUdpPacket.TryParse(receivedPackets[0]!.Value)!.ClientPublicIPEndPoint!);
+        var clientPublicEndPointToAlternateServer = IPEndPoint.Parse(NatTestUdpPacket.TryParse(receivedPackets[0]!.Value.UdpPacket)!.ClientPublicIPEndPoint!);
         // 相等说明映射为「地址相关」，否则说明映射为「地址和端口均相关」
         if (Equals(Report.ClientPublicEndPoint, clientPublicEndPointToAlternateServer))
         {
