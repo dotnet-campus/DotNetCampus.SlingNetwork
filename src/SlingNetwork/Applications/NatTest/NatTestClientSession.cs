@@ -59,7 +59,6 @@ public record NatTestClientSessionPhase
             throw new InvalidOperationException("NAT test must be prepared before filtering phase.");
         }
 
-        using var cts = new CancellationTokenSource();
         var receiver = new UdpPacketReceiver(UdpClient, Session.Logger, $"[NAT-TEST][{Session.SessionId[..8]}]", TimeSpan.FromSeconds(10));
 
         using var packetMemory = new NatTestUdpPacket
@@ -70,9 +69,10 @@ public record NatTestClientSessionPhase
         }.ToUdpPacket().ToPacketData(out var packetLength);
         var remoteEndPoint = new IPEndPoint(Session.Server1Address, Session.Server1Port1);
         Session.Logger.Info($"[NAT-TEST][{Session.SessionId[..8]}] UDP {NatTestUdpPacketHeader.Phase1SClientSend.ToHeaderString()} to {remoteEndPoint}");
-        await UdpClient.SendAsync(packetMemory.Memory[..packetLength], remoteEndPoint, cts.Token);
+        await UdpClient.RepeatSendAsync(packetMemory.Memory[..packetLength], remoteEndPoint,
+            Session.PacketRepeatCount, Session.PacketRepeatDelayMilliseconds, CancellationToken);
 
-        var receivedPackets = await receiver.ReceiveUtilAllMatches(cts.Token,
+        var receivedPackets = await receiver.ReceiveUtilAllMatches(CancellationToken,
             (_, packet) => MatchesSessionHeader(packet, NatTestUdpPacketHeader.Phase1RMainServerReply),
             (_, packet) => MatchesSessionHeader(packet, NatTestUdpPacketHeader.Phase11MainServerSend),
             (_, packet) => MatchesSessionHeader(packet, NatTestUdpPacketHeader.Phase12AlternateServerSend));
@@ -136,7 +136,6 @@ public record NatTestClientSessionPhase
             throw new InvalidOperationException("NAT test filtering phase must be done before mapping phase.");
         }
 
-        using var cts = new CancellationTokenSource();
         var receiver = new UdpPacketReceiver(UdpClient, Session.Logger, $"[NAT-TEST][{Session.SessionId[..8]}]", TimeSpan.FromSeconds(10));
 
         using var packetMemory = new NatTestUdpPacket
@@ -146,9 +145,10 @@ public record NatTestClientSessionPhase
         }.ToUdpPacket().ToPacketData(out var packetLength);
         var remoteEndPoint = new IPEndPoint(Session.Server2Address, Report.AlternateServerPort1);
         Session.Logger.Info($"[NAT-TEST][{Session.SessionId[..8]}] UDP {NatTestUdpPacketHeader.Phase2SClientSend.ToHeaderString()} to {remoteEndPoint}");
-        await UdpClient.SendAsync(packetMemory.Memory[..packetLength], remoteEndPoint, cts.Token);
+        await UdpClient.RepeatSendAsync(packetMemory.Memory[..packetLength], remoteEndPoint,
+            Session.PacketRepeatCount, Session.PacketRepeatDelayMilliseconds, CancellationToken);
 
-        var receivedPackets = await receiver.ReceiveUtilAllMatches(cts.Token,
+        var receivedPackets = await receiver.ReceiveUtilAllMatches(CancellationToken,
             (_, packet) => MatchesSessionHeader(packet, NatTestUdpPacketHeader.Phase2RAlternateServerSend));
         var natTestPacket = receivedPackets[0] is { UdpPacket: var receivedPacket }
             ? NatTestUdpPacket.TryParse(receivedPacket)
@@ -197,7 +197,6 @@ public record NatTestClientSessionPhase
             throw new InvalidOperationException("NAT test mapping phase must be done before mapping-2 phase.");
         }
 
-        using var cts = new CancellationTokenSource();
         var receiver = new UdpPacketReceiver(UdpClient, Session.Logger, $"[NAT-TEST][{Session.SessionId[..8]}]", TimeSpan.FromSeconds(10));
 
         using var packetMemory = new NatTestUdpPacket
@@ -207,9 +206,10 @@ public record NatTestClientSessionPhase
         }.ToUdpPacket().ToPacketData(out var packetLength);
         var remoteEndPoint = new IPEndPoint(Session.Server2Address, Report.AlternateServerPort2);
         Session.Logger.Info($"[NAT-TEST][{Session.SessionId[..8]}] UDP {NatTestUdpPacketHeader.Phase3SClientSend.ToHeaderString()} to {remoteEndPoint}");
-        await UdpClient.SendAsync(packetMemory.Memory[..packetLength], remoteEndPoint, cts.Token);
+        await UdpClient.RepeatSendAsync(packetMemory.Memory[..packetLength], remoteEndPoint,
+            Session.PacketRepeatCount, Session.PacketRepeatDelayMilliseconds, CancellationToken);
 
-        var receivedPackets = await receiver.ReceiveUtilAllMatches(cts.Token,
+        var receivedPackets = await receiver.ReceiveUtilAllMatches(CancellationToken,
             (_, packet) => MatchesSessionHeader(packet, NatTestUdpPacketHeader.Phase3RAlternateServerSend));
         var natTestPacket = receivedPackets[0] is { UdpPacket: var receivedPacket }
             ? NatTestUdpPacket.TryParse(receivedPacket)
@@ -254,7 +254,6 @@ public record NatTestClientSessionPhase
 
     public async Task FinishAsync()
     {
-        using var cts = new CancellationTokenSource();
         using var packetMemory = new NatTestUdpPacket
         {
             Header = NatTestUdpPacketHeader.Phase4Finish,
@@ -263,13 +262,15 @@ public record NatTestClientSessionPhase
 
         var server1EndPoint = new IPEndPoint(Session.Server1Address, Session.Server1Port1);
         Session.Logger.Info($"[NAT-TEST][{Session.SessionId[..8]}] UDP {NatTestUdpPacketHeader.Phase4Finish.ToHeaderString()} to {server1EndPoint}");
-        await UdpClient.SendAsync(packetMemory.Memory[..packetLength], server1EndPoint, cts.Token);
+        await UdpClient.RepeatSendAsync(packetMemory.Memory[..packetLength], server1EndPoint,
+            Session.PacketRepeatCount, Session.PacketRepeatDelayMilliseconds, CancellationToken);
 
         if (Report.AlternateServerPort1 > 0)
         {
             var server2EndPoint = new IPEndPoint(Session.Server2Address, Report.AlternateServerPort1);
             Session.Logger.Info($"[NAT-TEST][{Session.SessionId[..8]}] UDP {NatTestUdpPacketHeader.Phase4Finish.ToHeaderString()} to {server2EndPoint}");
-            await UdpClient.SendAsync(packetMemory.Memory[..packetLength], server2EndPoint, cts.Token);
+            await UdpClient.RepeatSendAsync(packetMemory.Memory[..packetLength], server2EndPoint,
+                Session.PacketRepeatCount, Session.PacketRepeatDelayMilliseconds, CancellationToken);
         }
     }
 

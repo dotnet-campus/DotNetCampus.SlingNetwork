@@ -126,11 +126,8 @@ public static class NatTestServer
         }.ToUdpPacket().ToPacketData(out var packetLength1);
 
         logger.Info($"[NAT-TEST][{sessionId[..8]}] UDP {NatTestUdpPacketHeader.Phase12AlternateServerSend.ToHeaderString()} to {clientPublicEndPoint}");
-        for (var i = 0; i < packetRepeatCount; i++)
-        {
-            await udpClient1.SendAsync(packetMemory1.Memory[..packetLength1], clientPublicEndPoint, cancellationToken);
-            await Task.Delay(packetRepeatDelayMilliseconds, cancellationToken);
-        }
+        await udpClient1.RepeatSendAsync(packetMemory1.Memory[..packetLength1], clientPublicEndPoint,
+            packetRepeatCount, packetRepeatDelayMilliseconds, cancellationToken);
 
         // 第 2.2 轮
         var receivedPackets = await receiver1.ReceiveUtilAllMatches(cancellationToken, (_, p) =>
@@ -150,11 +147,8 @@ public static class NatTestServer
         }.ToUdpPacket().ToPacketData(out var packetLength2);
 
         logger.Info($"[NAT-TEST][{sessionId[..8]}] UDP {NatTestUdpPacketHeader.Phase2RAlternateServerSend.ToHeaderString()} to {remoteEndPoint2}");
-        for (var i = 0; i < packetRepeatCount; i++)
-        {
-            await udpClient1.SendAsync(packetMemory2.Memory[..packetLength2], remoteEndPoint2, cancellationToken);
-            await Task.Delay(packetRepeatDelayMilliseconds, cancellationToken);
-        }
+        await udpClient1.RepeatSendAsync(packetMemory2.Memory[..packetLength2], remoteEndPoint2,
+            packetRepeatCount, packetRepeatDelayMilliseconds, cancellationToken);
 
         // 第 3.2 轮（可选）与第 4 轮结束通知并行等待。
         using var waitCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
@@ -199,11 +193,8 @@ public static class NatTestServer
         }.ToUdpPacket().ToPacketData(out var packetLength3);
 
         logger.Info($"[NAT-TEST][{sessionId[..8]}] UDP {NatTestUdpPacketHeader.Phase3RAlternateServerSend.ToHeaderString()} to {remoteEndPoint3}");
-        for (var i = 0; i < packetRepeatCount; i++)
-        {
-            await udpClient2.SendAsync(packetMemory3.Memory[..packetLength3], remoteEndPoint3, cancellationToken);
-            await Task.Delay(packetRepeatDelayMilliseconds, cancellationToken);
-        }
+        await udpClient2.RepeatSendAsync(packetMemory3.Memory[..packetLength3], remoteEndPoint3,
+            packetRepeatCount, packetRepeatDelayMilliseconds, cancellationToken);
 
         var finalFinishPackets = await finishTask;
         if (finalFinishPackets[0] is null)
