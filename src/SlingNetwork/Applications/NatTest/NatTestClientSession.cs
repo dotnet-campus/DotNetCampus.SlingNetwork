@@ -73,15 +73,9 @@ public record NatTestClientSessionPhase
         await UdpClient.SendAsync(packetMemory.Memory[..packetLength], remoteEndPoint, cts.Token);
 
         var receivedPackets = await receiver.ReceiveUtilAllMatches(cts.Token,
-            (ep, p) => MatchesPacket(
-                ep, p, NatTestUdpPacketHeader.Phase1RMainServerReply,
-                new IPEndPoint(Session.Server1Address, Session.Server1Port1)),
-            (ep, p) => MatchesPacket(
-                ep, p, NatTestUdpPacketHeader.Phase11MainServerSend,
-                new IPEndPoint(Session.Server1Address, Session.Server1Port2)),
-            (ep, p) => MatchesPacket(
-                ep, p, NatTestUdpPacketHeader.Phase12AlternateServerSend,
-                Session.Server2Address));
+            (_, packet) => MatchesSessionHeader(packet, NatTestUdpPacketHeader.Phase1RMainServerReply),
+            (_, packet) => MatchesSessionHeader(packet, NatTestUdpPacketHeader.Phase11MainServerSend),
+            (_, packet) => MatchesSessionHeader(packet, NatTestUdpPacketHeader.Phase12AlternateServerSend));
 
         var phase1Reply = receivedPackets[0] is { UdpPacket: var phase1ReplyPacket }
             ? NatTestUdpPacket.TryParse(phase1ReplyPacket)
@@ -155,7 +149,7 @@ public record NatTestClientSessionPhase
         await UdpClient.SendAsync(packetMemory.Memory[..packetLength], remoteEndPoint, cts.Token);
 
         var receivedPackets = await receiver.ReceiveUtilAllMatches(cts.Token,
-            (ep, p) => MatchesPacket(ep, p, NatTestUdpPacketHeader.Phase2RAlternateServerSend, remoteEndPoint));
+            (_, packet) => MatchesSessionHeader(packet, NatTestUdpPacketHeader.Phase2RAlternateServerSend));
         var natTestPacket = receivedPackets[0] is { UdpPacket: var receivedPacket }
             ? NatTestUdpPacket.TryParse(receivedPacket)
             : null;
@@ -216,7 +210,7 @@ public record NatTestClientSessionPhase
         await UdpClient.SendAsync(packetMemory.Memory[..packetLength], remoteEndPoint, cts.Token);
 
         var receivedPackets = await receiver.ReceiveUtilAllMatches(cts.Token,
-            (ep, p) => MatchesPacket(ep, p, NatTestUdpPacketHeader.Phase3RAlternateServerSend, remoteEndPoint));
+            (_, packet) => MatchesSessionHeader(packet, NatTestUdpPacketHeader.Phase3RAlternateServerSend));
         var natTestPacket = receivedPackets[0] is { UdpPacket: var receivedPacket }
             ? NatTestUdpPacket.TryParse(receivedPacket)
             : null;
@@ -279,33 +273,18 @@ public record NatTestClientSessionPhase
         }
     }
 
-    private bool MatchesPacket(
-        IPEndPoint remoteEndPoint,
-        UdpHeaderedKeyValuePacket packet,
-        NatTestUdpPacketHeader expectedHeader,
-        IPEndPoint expectedRemoteEndPoint)
+    /// <summary>
+    /// 验证发给本客户端的 UDP 包是否是预期的 UDP NAT 探测包，且属于本次测试。
+    /// 注意，我们并没有验证包的 IP 来源：
+    /// 1. 虽然 RFC5780 要求验证 IP 来源，但实际上在符合 RFC5780 的网络上此验证对测试结果无影响
+    /// 2. 部分网络基础设施（如 Fake-IP）出于一些需要并不能符合 RFC5780 的要求，进行 IP 来源验证会导致测试结果失真（先收到真实 IP 但后续通过虚假 IP 发送）
+    /// </summary>
+    /// <param name="packet"></param>
+    /// <param name="expectedHeader"></param>
+    /// <returns></returns>
+    private bool MatchesSessionHeader(UdpHeaderedKeyValuePacket packet, NatTestUdpPacketHeader expectedHeader)
     {
-        return MatchesPacketPayload(packet, expectedHeader)
-               && Equals(remoteEndPoint.Normalize(), expectedRemoteEndPoint.Normalize());
-    }
-
-    private bool MatchesPacket(
-        IPEndPoint remoteEndPoint,
-        UdpHeaderedKeyValuePacket packet,
-        NatTestUdpPacketHeader expectedHeader,
-        IPAddress expectedRemoteAddress)
-    {
-        return MatchesPacketPayload(packet, expectedHeader)
-               && Equals(
-                   remoteEndPoint.Address.Normalize(),
-                   expectedRemoteAddress.Normalize());
-    }
-
-    private bool MatchesPacketPayload(
-        UdpHeaderedKeyValuePacket packet,
-        NatTestUdpPacketHeader expectedHeader)
-    {
-        return packet.Header == expectedHeader.ToHeaderString()
+        return NatTestUdpPacketHeader.ParseFromHeader(packet.Header) == expectedHeader
                && packet.Payload.GetValueOrDefault(nameof(NatTestUdpPacket.SessionId)) == Session.SessionId;
     }
 }
