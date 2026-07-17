@@ -1,0 +1,15 @@
+.git
+.github
+.vs
+.idea
+.vscode
+**/bin
+**/obj
+artifacts
+tests
+docs
+samples
+src/SlingNetwork.UI
+*.user
+*.suo
+*.binlog
