@@ -9,7 +9,8 @@ internal static class UdpPacketCrypto
     private static readonly UTF8Encoding Utf8 = new(false, true);
 
     private static readonly ReadOnlyMemory<byte> Key = Convert.FromHexString(
-        "0000000000000000000000000000000000000000000000000000000000000000");
+        Environment.GetEnvironmentVariable("SLING_NETWORK_UDP_PACKET_SECRET_KEY")
+        ?? "0000000000000000000000000000000000000000000000000000000000000000");
 
     private const int NonceSize = 12;
     private const int TagSize = 16;
