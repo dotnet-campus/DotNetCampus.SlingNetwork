@@ -1,0 +1,221 @@
+using System.Net;
+using System.Net.Http.Json;
+using System.Net.Sockets;
+using DotNetCampus.Logging;
+using DotNetCampus.SlingNetwork.ServerSide.ControlServices;
+using DotNetCampus.SlingNetwork.Transports;
+using DotNetCampus.SlingNetwork.Transports.Models;
+using DotNetCampus.SlingNetwork.Transports.Security;
+
+namespace DotNetCampus.SlingNetwork.Applications.NatTest;
+
+public static class NatTestServer
+{
+    public static async Task ServerFilteringPhaseAsync(
+        HttpClient httpClient, ILogger logger,
+        string sessionId, int port1, int port2,
+        int packetRepeatCount, int packetRepeatDelayMilliseconds,
+        CancellationToken cancellationToken)
+    {
+        using var udpClient1 = new UdpClient(AddressFamily.InterNetworkV6);
+        udpClient1.Client.DualMode = true;
+        udpClient1.Client.Bind(new IPEndPoint(IPAddress.Any, port1));
+        var receiver1 = new UdpPacketReceiver(udpClient1, logger, $"[NAT-TEST][{sessionId[..8]}]", TimeSpan.FromMinutes(2));
+
+        using var udpClient2 = new UdpClient(AddressFamily.InterNetworkV6);
+        udpClient2.Client.DualMode = true;
+        udpClient2.Client.Bind(new IPEndPoint(IPAddress.Any, port2));
+
+        // 第 1.2 轮
+        var receivedPackets = await receiver1.ReceiveUtilAllMatches(cancellationToken, (_, p) =>
+            MatchesSessionHeader(p, sessionId, NatTestUdpPacketHeader.Phase1SClientSend));
+        if (receivedPackets[0] is not ({ } remoteEndPoint, { } receivedPacket))
+        {
+            // 客户端未在 NAT 测试请求后的一段时间内发出 NAT 探测包，本次 NAT 探测结束。
+            logger.Warn("We do not received any NAT test packet after the client requested one. NAT test is aborted.");
+            return;
+        }
+
+        if (NatTestUdpPacket.TryParse(receivedPacket) is not { AlternateServerUrl: { } alternateServerUrl })
+        {
+            // 收到的数据包不符合要求，丢弃，并放弃本次 NAT 探测。
+            logger.Warn("Client NAT test packet is not valid. NAT test is aborted.");
+            return;
+        }
+
+        var httpResponse = await httpClient.PostAsJsonAsync(
+            $"{alternateServerUrl}/api/v1/nat-test/forward?repeat={packetRepeatCount}&delay={packetRepeatDelayMilliseconds}",
+            new NatTestForwardRequest
+            {
+                SessionId = sessionId,
+                Address = remoteEndPoint.Address.ToString(),
+                Port = remoteEndPoint.Port,
+            }, TransportJsonContext.Default.NatTestForwardRequest, cancellationToken: cancellationToken);
+        if (!httpResponse.IsSuccessStatusCode)
+        {
+            // 备用服务器未按预期工作，放弃本次 NAT 探测。
+            var content = await httpResponse.Content.ReadAsStringAsync(cancellationToken);
+            logger.Warn($"""
+                    Partner control server does not work correctly. NAT test is aborted.
+                    Code: {httpResponse.StatusCode}({(int)httpResponse.StatusCode}) Response: {content}"
+                    """);
+            return;
+        }
+        var response = await httpResponse.Content.ReadFromJsonAsync(TransportJsonContext.Default.NatTestSession, cancellationToken);
+
+        using var packetMemoryR = new NatTestUdpPacket
+        {
+            Header = NatTestUdpPacketHeader.Phase1RMainServerReply,
+            SessionId = sessionId,
+            ClientPublicIPEndPoint = remoteEndPoint.ToString(),
+            AlternateServerPort1 = response!.Port1,
+            AlternateServerPort2 = response.Port2,
+        }.ToUdpPacket().ToPacketData(out var packetLengthR);
+
+        using var packetMemoryS = new NatTestUdpPacket
+        {
+            Header = NatTestUdpPacketHeader.Phase11MainServerSend,
+            SessionId = sessionId,
+            ClientPublicIPEndPoint = remoteEndPoint.ToString(),
+        }.ToUdpPacket().ToPacketData(out var packetLengthS);
+
+        logger.Info($"[NAT-TEST][{sessionId[..8]}] UDP {NatTestUdpPacketHeader.Phase1RMainServerReply.ToHeaderString()} to {remoteEndPoint}");
+        logger.Info($"[NAT-TEST][{sessionId[..8]}] UDP {NatTestUdpPacketHeader.Phase11MainServerSend.ToHeaderString()} to {remoteEndPoint}");
+        for (var i = 0; i < packetRepeatCount; i++)
+        {
+            await udpClient1.SendAsync(packetMemoryR.Memory[..packetLengthR], remoteEndPoint, cancellationToken);
+            await udpClient2.SendAsync(packetMemoryS.Memory[..packetLengthS], remoteEndPoint, cancellationToken);
+            await Task.Delay(packetRepeatDelayMilliseconds, cancellationToken);
+        }
+
+        // 第 4 轮：客户端显式通知本次测试结束。
+        var finishPackets = await receiver1.ReceiveUtilAllMatches(cancellationToken, (_, p) =>
+            MatchesSessionHeader(p, sessionId, NatTestUdpPacketHeader.Phase4Finish));
+        if (finishPackets[0] is null)
+        {
+            logger.Warn($"[NAT-TEST][{sessionId[..8]}] NAT test session finish notification was not received.");
+            return;
+        }
+
+        logger.Info($"[NAT-TEST][{sessionId[..8]}] NAT test session finished.");
+    }
+
+    public static async Task ServerFilteringAndMappingPhaseAsync(
+        ILogger logger,
+        string sessionId, string clientPublicAddress, int clientPublicPort, int port1, int port2,
+        int packetRepeatCount, int packetRepeatDelayMilliseconds,
+        CancellationToken cancellationToken)
+    {
+        using var udpClient1 = new UdpClient(AddressFamily.InterNetworkV6);
+        udpClient1.Client.DualMode = true;
+        udpClient1.Client.Bind(new IPEndPoint(IPAddress.Any, port1));
+        var receiver1 = new UdpPacketReceiver(udpClient1, logger, $"[NAT-TEST][{sessionId[..8]}]", TimeSpan.FromMinutes(2));
+
+        using var udpClient2 = new UdpClient(AddressFamily.InterNetworkV6);
+        udpClient2.Client.DualMode = true;
+        udpClient2.Client.Bind(new IPEndPoint(IPAddress.Any, port2));
+        var receiver2 = new UdpPacketReceiver(udpClient2, logger, $"[NAT-TEST][{sessionId[..8]}]", TimeSpan.FromMinutes(2));
+
+        // 第 1.2 轮
+        var clientPublicEndPoint = new IPEndPoint(IPAddress.Parse(clientPublicAddress).Normalize(), clientPublicPort);
+        using var packetMemory1 = new NatTestUdpPacket
+        {
+            Header = NatTestUdpPacketHeader.Phase12AlternateServerSend,
+            SessionId = sessionId,
+            ClientPublicIPEndPoint = clientPublicEndPoint.ToString(),
+        }.ToUdpPacket().ToPacketData(out var packetLength1);
+
+        logger.Info($"[NAT-TEST][{sessionId[..8]}] UDP {NatTestUdpPacketHeader.Phase12AlternateServerSend.ToHeaderString()} to {clientPublicEndPoint}");
+        await udpClient1.RepeatSendAsync(packetMemory1.Memory[..packetLength1], clientPublicEndPoint,
+            packetRepeatCount, packetRepeatDelayMilliseconds, cancellationToken);
+
+        // 第 2.2 轮
+        var receivedPackets = await receiver1.ReceiveUtilAllMatches(cancellationToken, (_, p) =>
+            MatchesSessionHeader(p, sessionId, NatTestUdpPacketHeader.Phase2SClientSend));
+        if (receivedPackets[0] is not ({ } remoteEndPoint2, _))
+        {
+            // 客户端未在 NAT 测试第 1 轮的回包之后发出新轮的 NAT 探测包，本次 NAT 探测结束。
+            logger.Warn("We do not received any NAT test packet after the client requested one. NAT test is aborted.");
+            return;
+        }
+
+        using var packetMemory2 = new NatTestUdpPacket
+        {
+            Header = NatTestUdpPacketHeader.Phase2RAlternateServerSend,
+            SessionId = sessionId,
+            ClientPublicIPEndPoint = remoteEndPoint2.ToString(),
+        }.ToUdpPacket().ToPacketData(out var packetLength2);
+
+        logger.Info($"[NAT-TEST][{sessionId[..8]}] UDP {NatTestUdpPacketHeader.Phase2RAlternateServerSend.ToHeaderString()} to {remoteEndPoint2}");
+        await udpClient1.RepeatSendAsync(packetMemory2.Memory[..packetLength2], remoteEndPoint2,
+            packetRepeatCount, packetRepeatDelayMilliseconds, cancellationToken);
+
+        // 第 3.2 轮（可选）与第 4 轮结束通知并行等待。
+        using var waitCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+        var finishTask = receiver1.ReceiveUtilAllMatches(waitCts.Token, (_, p) =>
+            MatchesSessionHeader(p, sessionId, NatTestUdpPacketHeader.Phase4Finish));
+        var phase3Task = receiver2.ReceiveUtilAllMatches(waitCts.Token, (_, p) =>
+            MatchesSessionHeader(p, sessionId, NatTestUdpPacketHeader.Phase3SClientSend));
+
+        var firstCompletedTask = await Task.WhenAny(finishTask, phase3Task);
+        if (firstCompletedTask == finishTask)
+        {
+            var finishPackets = await finishTask;
+            if (finishPackets[0] is not null)
+            {
+                await waitCts.CancelAsync();
+                await phase3Task;
+                logger.Info($"[NAT-TEST][{sessionId[..8]}] NAT test session finished.");
+                return;
+            }
+        }
+
+        var receivedPackets3 = await phase3Task;
+        if (receivedPackets3[0] is not ({ } remoteEndPoint3, _))
+        {
+            var finishPackets = await finishTask;
+            if (finishPackets[0] is not null)
+            {
+                logger.Info($"[NAT-TEST][{sessionId[..8]}] NAT test session finished.");
+            }
+            else
+            {
+                logger.Warn($"[NAT-TEST][{sessionId[..8]}] NAT test session finish notification was not received.");
+            }
+            return;
+        }
+
+        using var packetMemory3 = new NatTestUdpPacket
+        {
+            Header = NatTestUdpPacketHeader.Phase3RAlternateServerSend,
+            SessionId = sessionId,
+            ClientPublicIPEndPoint = remoteEndPoint3.ToString(),
+        }.ToUdpPacket().ToPacketData(out var packetLength3);
+
+        logger.Info($"[NAT-TEST][{sessionId[..8]}] UDP {NatTestUdpPacketHeader.Phase3RAlternateServerSend.ToHeaderString()} to {remoteEndPoint3}");
+        await udpClient2.RepeatSendAsync(packetMemory3.Memory[..packetLength3], remoteEndPoint3,
+            packetRepeatCount, packetRepeatDelayMilliseconds, cancellationToken);
+
+        var finalFinishPackets = await finishTask;
+        if (finalFinishPackets[0] is null)
+        {
+            logger.Warn($"[NAT-TEST][{sessionId[..8]}] NAT test session finish notification was not received.");
+            return;
+        }
+
+        logger.Info($"[NAT-TEST][{sessionId[..8]}] NAT test session finished.");
+    }
+
+    /// <summary>
+    /// 验证发给本客户端的 UDP 包是否是预期的 UDP NAT 探测包，且属于本次测试。
+    /// </summary>
+    /// <param name="packet"></param>
+    /// <param name="sessionId"></param>
+    /// <param name="expectedHeader"></param>
+    /// <returns></returns>
+    private static bool MatchesSessionHeader(UdpHeaderedKeyValuePacket packet, string sessionId, NatTestUdpPacketHeader expectedHeader)
+    {
+        return NatTestUdpPacketHeader.ParseFromHeader(packet.Header) == expectedHeader
+               && packet.Payload.GetValueOrDefault(nameof(NatTestUdpPacket.SessionId)) == sessionId;
+    }
+}

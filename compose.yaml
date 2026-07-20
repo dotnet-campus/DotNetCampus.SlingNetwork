@@ -1,0 +1,24 @@
+name: sling-network
+
+services:
+  server:
+    image: ${SLING_NETWORK_IMAGE:-sling-network:local}
+    build:
+      context: .
+      dockerfile: Dockerfile
+    platform: linux/amd64
+    network_mode: host
+    restart: unless-stopped
+    read_only: true
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    command:
+      - serve
+      - --listen
+      - 0.0.0.0:5451
+      - --listen
+      - "[::]:5451"
+      - --udp-port-range
+      - 50000-51000

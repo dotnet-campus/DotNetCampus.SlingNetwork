@@ -1,0 +1,28 @@
+<Project>
+
+  <Import Project="build\Version.props" />
+
+  <PropertyGroup>
+    <LangVersion>latest</LangVersion>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <ArtifactsPath>$(MSBuildThisFileDirectory)artifacts\</ArtifactsPath>
+    <ManagePackageVersionsCentrally>true</ManagePackageVersionsCentrally>
+    <NoWarn>$(NoWarn);NU1507</NoWarn>
+  </PropertyGroup>
+
+  <PropertyGroup>
+    <RepositoryRoot>$(MSBuildThisFileDirectory)</RepositoryRoot>
+    <ThisYear>$([System.DateTime]::Now.ToString(`yyyy`))</ThisYear>
+  </PropertyGroup>
+
+  <PropertyGroup>
+    <Company>dotnet campus(.NET 职业技术学院)</Company>
+    <Authors>dotnet-campus</Authors>
+    <Copyright>Copyright © 2026-$(ThisYear) dotnet campus, All Rights Reserved.</Copyright>
+    <RepositoryType>git</RepositoryType>
+    <RepositoryUrl>https://github.com/dotnet-campus/SlingNetwork</RepositoryUrl>
+    <PackageProjectUrl>https://github.com/dotnet-campus/SlingNetwork</PackageProjectUrl>
+  </PropertyGroup>
+
+</Project>

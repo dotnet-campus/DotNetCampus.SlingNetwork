@@ -1,0 +1,47 @@
+using System.Net;
+
+namespace DotNetCampus.SlingNetwork.Transports.Models;
+
+public record NatTestReport
+{
+    public required bool Success { get; init; }
+    public required string SessionId { get; init; }
+    public required NatMappingBehavior Mapping { get; init; }
+    public required NetworkPacketFilteringBehavior Filtering { get; init; }
+    public required int AlternateServerPort1 { get; init; }
+    public required int AlternateServerPort2 { get; init; }
+    public required IPEndPoint ClientLocalEndPoint { get; init; }
+    public required IPEndPoint ClientPublicEndPoint { get; init; }
+    public required IPEndPoint ClientPublicEndPointToAlternateServerPort1 { get; init; }
+    public required IPEndPoint? ClientPublicEndPointToAlternateServerPort2 { get; init; }
+    public Rfc3489NatType LegacyNatType => (Mapping, Filtering) switch
+    {
+        (NatMappingBehavior.EndpointIndependent, NetworkPacketFilteringBehavior.EndpointIndependent)
+            => Rfc3489NatType.FullCone,
+        (NatMappingBehavior.EndpointIndependent, NetworkPacketFilteringBehavior.AddressDependent)
+            => Rfc3489NatType.RestrictedCone,
+        (NatMappingBehavior.EndpointIndependent, NetworkPacketFilteringBehavior.AddressAndPortDependent)
+            => Rfc3489NatType.PortRestrictedCone,
+        (NatMappingBehavior.AddressAndPortDependent, NetworkPacketFilteringBehavior.AddressAndPortDependent)
+            => Rfc3489NatType.Symmetric,
+        _ => Rfc3489NatType.NotRepresentable,
+    };
+
+    public bool IsPublicEndPoint => Equals(
+        ClientLocalEndPoint.Address.Normalize(),
+        ClientPublicEndPoint.Address.Normalize());
+
+    public static NatTestReport Empty { get; } = new NatTestReport
+    {
+        Success = false,
+        SessionId = "",
+        Mapping = NatMappingBehavior.EndpointIndependent,
+        Filtering = NetworkPacketFilteringBehavior.EndpointIndependent,
+        AlternateServerPort1 = 0,
+        AlternateServerPort2 = 0,
+        ClientLocalEndPoint = new IPEndPoint(IPAddress.Loopback, 0),
+        ClientPublicEndPoint = new IPEndPoint(IPAddress.Loopback, 0),
+        ClientPublicEndPointToAlternateServerPort1 = new IPEndPoint(IPAddress.Loopback, 0),
+        ClientPublicEndPointToAlternateServerPort2 = null,
+    };
+}

@@ -1,0 +1,21 @@
+<Solution>
+  <Folder Name="/0.repo/">
+    <File Path=".gitignore" />
+    <File Path="AGENTS.md" />
+    <File Path="README.md" />
+  </Folder>
+  <Folder Name="/1.build/">
+    <File Path="build/Package.props" />
+    <File Path="build/Version.props" />
+    <File Path="Directory.Build.props" />
+    <File Path="Directory.Packages.props" />
+  </Folder>
+  <Folder Name="/2.docs/">
+    <Project Path="docs/Documents.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/SlingNetwork.Tests/SlingNetwork.Tests.csproj" />
+  </Folder>
+  <Project Path="src/SlingNetwork.UI/SlingNetwork.UI.csproj" />
+  <Project Path="src/SlingNetwork/SlingNetwork.csproj" />
+</Solution>
