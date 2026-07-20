@@ -5,10 +5,13 @@
     <File Path="README.md" />
   </Folder>
   <Folder Name="/1.build/">
+    <File Path=".dockerignore" />
     <File Path="build/Package.props" />
     <File Path="build/Version.props" />
+    <File Path="compose.yaml" />
     <File Path="Directory.Build.props" />
     <File Path="Directory.Packages.props" />
+    <File Path="Dockerfile" />
   </Folder>
   <Folder Name="/2.docs/">
     <Project Path="docs/Documents.csproj" />
