@@ -48,8 +48,10 @@ public static class NatTestServer
             new NatTestForwardRequest
             {
                 SessionId = sessionId,
-                Address = remoteEndPoint.Address.ToString(),
-                Port = remoteEndPoint.Port,
+                ClientPublicAddress = remoteEndPoint.Address.ToString(),
+                ClientPublicPort = remoteEndPoint.Port,
+                SuggestedServerPort1 = port1,
+                SuggestedServerPort2 = port2,
             }, TransportJsonContext.Default.NatTestForwardRequest, cancellationToken: cancellationToken);
         if (!httpResponse.IsSuccessStatusCode)
         {

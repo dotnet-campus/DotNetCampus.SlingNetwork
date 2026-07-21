@@ -55,6 +55,6 @@ public class ControlHttpServer(ServerContext context, ServeHandler serverInfo)
             }));
         await service.StartAsync();
 
-        context.App.Logger.Debug($"调试用地址: http://127.0.0.1:{ipHosts[0].Port}/api/v1/punch?publicKey=xxx");
+        context.App.Logger.Debug($"Listening: http://[::]:{ipHosts[0].Port}");
     }
 }

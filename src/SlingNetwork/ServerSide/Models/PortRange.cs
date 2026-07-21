@@ -12,6 +12,8 @@ public readonly record struct PortRange(ushort Min, ushort Max)
     {
     }
 
+    public int Count => Max - Min + 1;
+
     public static PortRange Parse(ReadOnlySpan<char> text)
     {
         var index = text.IndexOf('-');
@@ -59,6 +61,11 @@ public readonly record struct PortRange(ushort Min, ushort Max)
         return System.Random.Shared.Next(Min, Max + 1);
     }
 
+    /// <summary>
+    /// 传入一组建议的端口号。如果任一端口号是 0，则为此端口号随机生成一个新的端口号，直到所有的端口号都不相同且不为 0。
+    /// </summary>
+    /// <param name="ports"></param>
+    /// <returns></returns>
     public bool RandomTo(Span<int> ports)
     {
         var count = Max - Min + 1;
@@ -67,11 +74,10 @@ public readonly record struct PortRange(ushort Min, ushort Max)
             return false;
         }
 
-        ports.Clear();
-        ports[0] = System.Random.Shared.Next(Min, Max + 1);
+        ports[0] = UseOrRandom(ports[0]);
         for (var i = 1; i < ports.Length; i++)
         {
-            var port = System.Random.Shared.Next(Min, Max + 1);
+            var port = UseOrRandom(ports[i]);
             while (ports[..i].Contains(port))
             {
                 port = System.Random.Shared.Next(Min, Max + 1);
@@ -79,5 +85,15 @@ public readonly record struct PortRange(ushort Min, ushort Max)
             ports[i] = port;
         }
         return true;
+    }
+
+    private int UseOrRandom(int port)
+    {
+        if (port is 0 || Min > port || Max < port)
+        {
+            // 如果建议的端口号无法满足要求，则随机生成一个。
+            return System.Random.Shared.Next(Min, Max + 1);
+        }
+        return port;
     }
 }

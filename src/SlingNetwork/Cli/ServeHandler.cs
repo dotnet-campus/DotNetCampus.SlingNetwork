@@ -1,6 +1,7 @@
 ﻿using DotNetCampus.Cli;
 using DotNetCampus.Cli.Compiler;
 using DotNetCampus.Cli.Exceptions;
+using DotNetCampus.Logging;
 using DotNetCampus.SlingNetwork.Localizations;
 using DotNetCampus.SlingNetwork.ServerSide;
 using DotNetCampus.SlingNetwork.ServerSide.ControlServices;
@@ -50,6 +51,11 @@ public class ServeHandler : ICommandHandler<AppContext>
                 Port = udpPort,
             },
         };
+
+        if (UdpPortRange.Count < 2)
+        {
+            app.Logger.Warn("At least two UDP port is required for NAT test usage.");
+        }
 
         // 初始化服务。
         var punchService = new UdpPacketServer(serverContext);

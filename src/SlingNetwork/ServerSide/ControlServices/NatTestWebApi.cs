@@ -60,11 +60,13 @@ public class NatTestWebApi(ServeHandler serverInfo, HttpClient httpClient, ILogg
         var request = JsonSerializer.Deserialize(response, TransportJsonContext.Default.NatTestForwardRequest)!;
 
         Span<int> portPair = stackalloc int[2];
+        portPair[0] = request.SuggestedServerPort1;
+        portPair[1] = request.SuggestedServerPort2;
         serverInfo.UdpPortRange.RandomTo(portPair);
 
         logger.Info($"[NAT-TEST][{request.SessionId}] HTTP forwarded from {context.GetClientIP()}");
         NatTestServer.ServerFilteringAndMappingPhaseAsync(logger,
-                request.SessionId, request.Address, request.Port, portPair[0], portPair[1],
+                request.SessionId, request.ClientPublicAddress, request.ClientPublicPort, portPair[0], portPair[1],
                 packetRepeatCount, packetRepeatDelayMilliseconds,
                 CancellationToken.None)
             .LogAsyncException(logger);
@@ -78,11 +80,33 @@ public class NatTestWebApi(ServeHandler serverInfo, HttpClient httpClient, ILogg
     }
 }
 
+/// <summary>
+/// 控制服务器向备用控制服务器请求协助 NAT 探测时的请求参数。
+/// </summary>
 public record NatTestForwardRequest
 {
+    /// <summary>
+    /// 本次 NAT 探测的 Id。
+    /// </summary>
     public required string SessionId { get; init; }
 
-    public required string Address { get; init; }
+    /// <summary>
+    /// 客户端在公网上暴露的 IP。备用控制服务器应向此 IP 发送 NAT 探测数据包。
+    /// </summary>
+    public required string ClientPublicAddress { get; init; }
 
-    public required int Port { get; init; }
+    /// <summary>
+    /// 客户端在公网上暴露的端口。备用控制服务器应向此端口发送 NAT 探测数据包。
+    /// </summary>
+    public required int ClientPublicPort { get; init; }
+
+    /// <summary>
+    /// 建议备用服务器协助 NAT 探测时使用此端口作为 1 号端口。备用服务器应优先分配此端口协助探测。
+    /// </summary>
+    public required int SuggestedServerPort1 { get; init; }
+
+    /// <summary>
+    /// 建议备用服务器协助 NAT 探测时使用此端口作为 2 号端口。备用服务器应优先分配此端口协助探测。
+    /// </summary>
+    public required int SuggestedServerPort2 { get; init; }
 }
